@@ -215,43 +215,37 @@ app.flushSeller = function () {
 }
 
 app.getSeller = function () {
-	if (!this.seller) {
-		try {
-			this.seller = JSON.parse(sessionStorage.getItem('seller'))
-		} catch (e) {}
-	}
+	try {
+		this.seller = JSON.parse(sessionStorage.getItem('seller'))
+	} catch (e) {}
 	return this.seller
 }
 app.getSellerNoAll = function () {
-	if (!this.seller_noall) {
-		try {
-			this.seller_noall = JSON.parse(sessionStorage.getItem('seller'))
-			for (let i = 0; i < this.seller_noall.length; i++) {
-				if (this.seller_noall[i].SellerId == 0) {
-					this.seller_noall.splice(i, 1)
-				}
+	try {
+		this.seller_noall = JSON.parse(sessionStorage.getItem('seller'))
+		for (let i = 0; i < this.seller_noall.length; i++) {
+			if (this.seller_noall[i].SellerId == 0) {
+				this.seller_noall.splice(i, 1)
 			}
-		} catch (e) {}
-	}
+		}
+	} catch (e) {}
 	return this.seller_noall
 }
 
 app.getSellerNoZong = function () {
-	if (!this.seller_nozong) {
-		try {
-			this.seller_nozong = JSON.parse(sessionStorage.getItem('seller'))
-			for (let i = 0; i < this.seller_nozong.length; i++) {
-				if (this.seller_nozong[i].SellerId == 0) {
-					this.seller_nozong.splice(i, 1)
-				}
+	try {
+		this.seller_nozong = JSON.parse(sessionStorage.getItem('seller'))
+		for (let i = 0; i < this.seller_nozong.length; i++) {
+			if (this.seller_nozong[i].SellerId == 0) {
+				this.seller_nozong.splice(i, 1)
 			}
-			for (let i = 0; i < this.seller_nozong.length; i++) {
-				if (this.seller_nozong[i].SellerId == -1) {
-					this.seller_nozong.splice(i, 1)
-				}
+		}
+		for (let i = 0; i < this.seller_nozong.length; i++) {
+			if (this.seller_nozong[i].SellerId == -1) {
+				this.seller_nozong.splice(i, 1)
 			}
-		} catch (e) {}
-	}
+		}
+	} catch (e) {}
 	return this.seller_nozong
 }
 

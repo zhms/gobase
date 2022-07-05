@@ -124,7 +124,6 @@ func seller_add(ctx *abugo.AbuHttpContent) {
 	sql := fmt.Sprintf("insert into %s(SellerName,State,Remark)values(?,?,?)", db_seller_tablename)
 	db.QueryNoResult(sql, reqdata.SellerName, reqdata.State, reqdata.Remark)
 	WriteAdminLog("添加运营商", ctx, reqdata)
-	seller_flush(nil)
 	ctx.RespOK()
 }
 
@@ -152,7 +151,6 @@ func seller_modify(ctx *abugo.AbuHttpContent) {
 	sql := fmt.Sprintf("update %s set SellerName = ?,State = ?,Remark = ? where SellerId = ?", db_seller_tablename)
 	db.QueryNoResult(sql, reqdata.SellerName, reqdata.State, reqdata.Remark, reqdata.SellerId)
 	WriteAdminLog("修改运营商", ctx, reqdata)
-	seller_flush(nil)
 	ctx.RespOK()
 }
 
@@ -176,9 +174,9 @@ func seller_delete(ctx *abugo.AbuHttpContent) {
 	}
 	sql := fmt.Sprintf("delete from  %s where SellerId = ?", db_seller_tablename)
 	db.QueryNoResult(sql, reqdata.SellerId)
+	sql = "delete from admin_role where SellerId = ?"
+	db.QueryNoResult(sql,reqdata.SellerId)
 	WriteAdminLog("删除运营商", ctx, reqdata)
-	redis.HDel("x_hash:seller", fmt.Sprint(reqdata.SellerId))
-	seller_flush(nil)
 	ctx.RespOK()
 }
 
@@ -192,38 +190,54 @@ func Init() {
 	db = new(abugo.AbuDb)
 	db.Init("server.db")
 	SetupDatabase()
-	sql := "select RoleData from admin_role where SellerId = -1 and RoleName = '超级管理员'"
-	var dbauthdata string
-	db.QueryScan(sql, []interface{}{}, &dbauthdata)
-	if dbauthdata != AuthDataStr {
-		sql = "select Id,SellerId,RoleName,RoleData from admin_role"
-		dbresult, _ := db.Conn().Query(sql)
+	{
+		sql := "select SellerId from x_seller"
+		dbresult , _ := db.Conn().Query(sql)
 		for dbresult.Next() {
-			var roleid int
 			var sellerid int
-			var rolename string
-			var roledata string
-			dbresult.Scan(&roleid, &sellerid, &rolename, &roledata)
-			if sellerid == -1 && rolename == "超级管理员" {
-				continue
-			}
-			jnewdata := make(map[string]interface{})
-			json.Unmarshal([]byte(AuthDataStr), &jnewdata)
-			clean_auth(jnewdata)
-			jrdata := make(map[string]interface{})
-			json.Unmarshal([]byte(roledata), &jrdata)
-			for k, v := range jrdata {
-				set_auth(k, jnewdata, v.(map[string]interface{}))
-			}
-			newauthbyte, _ := json.Marshal(&jnewdata)
-			sql = "update admin_role set RoleData = ? where id = ?"
-			db.QueryNoResult(sql, string(newauthbyte), roleid)
+			dbresult.Scan(&sellerid)
+			sql = "insert ignore into admin_role(RoleName,SellerId,Parent,RoleData)values(?,?,?,?)"
+			db.QueryNoResult(sql,"运营商超管",sellerid,"god",SellerAuthDataStr)
 		}
 		dbresult.Close()
-		sql = "update admin_role set RoleData = ? where RoleName = '超级管理员'"
-		db.QueryNoResult(sql, AuthDataStr)
 	}
-	seller_flush(nil)
+	{
+		sql := "update admin_role set RoleData = ? where RoleName = ?"
+		db.QueryNoResult(sql,SellerAuthDataStr,"运营商超管")
+	}
+	{
+		sql := "select RoleData from admin_role where SellerId = -1 and RoleName = '超级管理员'"
+		var dbauthdata string
+		db.QueryScan(sql, []interface{}{}, &dbauthdata)
+		if dbauthdata != AuthDataStr {
+			sql = "select Id,SellerId,RoleName,RoleData from admin_role"
+			dbresult, _ := db.Conn().Query(sql)
+			for dbresult.Next() {
+				var roleid int
+				var sellerid int
+				var rolename string
+				var roledata string
+				dbresult.Scan(&roleid, &sellerid, &rolename, &roledata)
+				if sellerid == -1 && rolename == "超级管理员" {
+					continue
+				}
+				jnewdata := make(map[string]interface{})
+				json.Unmarshal([]byte(AuthDataStr), &jnewdata)
+				clean_auth(jnewdata)
+				jrdata := make(map[string]interface{})
+				json.Unmarshal([]byte(roledata), &jrdata)
+				for k, v := range jrdata {
+					set_auth(k, jnewdata, v.(map[string]interface{}))
+				}
+				newauthbyte, _ := json.Marshal(&jnewdata)
+				sql = "update admin_role set RoleData = ? where id = ?"
+				db.QueryNoResult(sql, string(newauthbyte), roleid)
+			}
+			dbresult.Close()
+			sql = "update admin_role set RoleData = ? where RoleName = '超级管理员'"
+			db.QueryNoResult(sql, AuthDataStr)
+		}
+	}
 	{
 		http.PostNoAuth("/admin/user/login", user_login)
 		http.Post("/admin/login_log", login_log)
@@ -244,7 +258,6 @@ func Init() {
 		http.Post("seller/add", seller_add)
 		http.Post("seller/delete", seller_delete)
 		http.Post("seller/modify", seller_modify)
-		http.Post("seller/flush", seller_flush)
 	}
 }
 func clean_auth(node map[string]interface{}) {
@@ -372,7 +385,7 @@ func user_login(ctx *abugo.AbuHttpContent) {
 		Title string     `json:"title"`
 		Subs  []MenuData `json:"subs"`
 	}
-	sqlstr := "select Id,SellerId,`Password`,RoleName,Token,State,GoogleSecret,LoginTime,LoginCount,RoleSellerId from admin_user where Account = ?"
+	sqlstr := "select Id,SellerId,`Password`,RoleName,Token,State,GoogleSecret,LoginTime,LoginCount from admin_user where Account = ?"
 	type UserData struct {
 		Id           int
 		Password     string
@@ -383,7 +396,6 @@ func user_login(ctx *abugo.AbuHttpContent) {
 		GoogleSecret string
 		LoginTime    string
 		LoginCount   int
-		RoleSellerId int
 	}
 	userdata := UserData{}
 	uqsresult, uqserr := db.Conn().Query(sqlstr, reqdata.Account)
@@ -412,7 +424,7 @@ func user_login(ctx *abugo.AbuHttpContent) {
 	}
 	var authdata string
 	sqlstr = "select RoleData from admin_role where RoleName = ? and SellerId = ?"
-	sqlparam := []interface{}{userdata.Rolename, userdata.RoleSellerId}
+	sqlparam := []interface{}{userdata.Rolename, userdata.SellerId}
 	qserr, qsresult := db.QueryScan(sqlstr, sqlparam, &authdata)
 	if ctx.RespErr(qserr, &errcode) {
 		return
@@ -607,7 +619,6 @@ func role_list(ctx *abugo.AbuHttpContent) {
 		Id             int
 		RoleName       string
 		SellerId       int
-		ParentSellerId int
 		Parent         string
 		RoleData       string
 	}
@@ -627,8 +638,6 @@ func role_list(ctx *abugo.AbuHttpContent) {
 func role_listall(ctx *abugo.AbuHttpContent) {
 	defer recover()
 	type RequestData struct {
-		Page     int
-		PageSize int
 		SellerId int
 	}
 	errcode := 0
@@ -747,16 +756,15 @@ func role_modify(ctx *abugo.AbuHttpContent) {
 	if ctx.RespErrString(token.SellerId > 0 && reqdata.SellerId != token.SellerId, &errcode, "运营商不正确") {
 		return
 	}
-	var ParentSellerId int
 	var ParentRoleName string
-	sql := "select ParentSellerId,Parent from admin_role where SellerId = ? and RoleName = ?"
-	db.QueryScan(sql, []interface{}{reqdata.SellerId, reqdata.RoleName}, &ParentSellerId, &ParentRoleName)
+	sql := "select Parent from admin_role where SellerId = ? and RoleName = ?"
+	db.QueryScan(sql, []interface{}{reqdata.SellerId, reqdata.RoleName}, &ParentRoleName)
 	if ctx.RespErrString(len(ParentRoleName) == 0, &errcode, "上级角色不存在") {
 		return
 	}
 	var ParentRoleData string
 	sql = "select RoleData from admin_role where SellerId = ? and RoleName = ?"
-	db.QueryScan(sql, []interface{}{ParentSellerId, ParentRoleName}, &ParentRoleData)
+	db.QueryScan(sql, []interface{}{reqdata.SellerId, ParentRoleName}, &ParentRoleData)
 	if ctx.RespErrString(len(ParentRoleData) == 0, &errcode, "获取上级角色数据失败") {
 		return
 	}
@@ -774,7 +782,7 @@ func role_modify(ctx *abugo.AbuHttpContent) {
 	for k, v := range jdata {
 		role_check(k, jparent, v.(map[string]interface{}), &result)
 	}
-	if ctx.RespErrString(len(result) > 0, &errcode, "权限大过上级角色") {
+	if ctx.RespErrString(len(result) > 0, &errcode, "权限不可大于上级角色") {
 		return
 	}
 	sql = "update admin_role set  RoleData = ? where SellerId = ? and RoleName = ?"
@@ -788,7 +796,6 @@ func role_modify(ctx *abugo.AbuHttpContent) {
 func role_add(ctx *abugo.AbuHttpContent) {
 	defer recover()
 	type RequestData struct {
-		ParentSellerId int    `validate:"required"`
 		Parent         string `validate:"required"`
 		SellerId       int    `validate:"required"`
 		RoleName       string `validate:"required"`
@@ -807,34 +814,45 @@ func role_add(ctx *abugo.AbuHttpContent) {
 	if ctx.RespErrString(token.SellerId > 0 && reqdata.SellerId != token.SellerId, &errcode, "运营商不正确") {
 		return
 	}
-	if ctx.RespErrString(reqdata.SellerId != -1 && reqdata.SellerId != reqdata.ParentSellerId && reqdata.ParentSellerId != -1, &errcode, "上级角色运营商只能是总后台角色或跟自己所属运营商一致,不可以是别的运营商") {
-		return
-	}
-	if ctx.RespErrString(reqdata.SellerId == -1 && reqdata.ParentSellerId != -1, &errcode, "总后台角色上级角色只能是总后台的角色") {
-		return
-	}
-	var rid int = 0
-	sql := "select id from admin_role where SellerId = ? and RoleName = ?"
-	db.QueryScan(sql, []interface{}{reqdata.ParentSellerId, reqdata.Parent}, &rid)
-	if ctx.RespErrString(rid == 0, &errcode, "上级角色不存在") {
-		return
-	}
-	rid = 0
-	sql = "select id from admin_role where SellerId = ? and RoleName = ? "
-	db.QueryScan(sql, []interface{}{reqdata.SellerId, reqdata.RoleName}, &rid)
-	if ctx.RespErrString(rid > 0, &errcode, "角色已经存在") {
-		return
-	}
 	if reqdata.SellerId != -1 {
-		sql = fmt.Sprintf("select SellerId from %s where SellerId = ? and state = 1", db_seller_tablename)
+		sql := fmt.Sprintf("select SellerId from %s where SellerId = ? and state = 1", db_seller_tablename)
 		var sellerid int
 		db.QueryScan(sql, []interface{}{reqdata.SellerId}, &sellerid)
-		if ctx.RespErrString(sellerid == 0, &errcode, "运营商不存在") {
+		if ctx.RespErrString(sellerid == 0, &errcode, "运营商已禁用或不存在") {
 			return
 		}
 	}
-	sql = "insert into admin_role(RoleName,SellerId,ParentSellerId,Parent,RoleData)values(?,?,?,?,?)"
-	param := []interface{}{reqdata.RoleName, reqdata.SellerId, reqdata.ParentSellerId, reqdata.Parent, reqdata.RoleData}
+	var roleid int = 0
+	sql := "select id from admin_role where SellerId = ? and RoleName = ? "
+	db.QueryScan(sql, []interface{}{reqdata.SellerId, reqdata.RoleName}, &roleid)
+	if ctx.RespErrString(roleid > 0, &errcode, "角色已经存在") {
+		return
+	}
+	var ParentRoleData string
+	sql = "select RoleData from admin_role where SellerId = ? and RoleName = ?"
+	db.QueryScan(sql, []interface{}{reqdata.SellerId, reqdata.Parent}, &ParentRoleData)
+	if ctx.RespErrString(len(ParentRoleData) == 0, &errcode, "上级角色不存在") {
+		return
+	}
+	jparent := make(map[string]interface{})
+	err = json.Unmarshal([]byte(ParentRoleData), &jparent)
+	if ctx.RespErr(err, &errcode) {
+		return
+	}
+	jdata := make(map[string]interface{})
+	err = json.Unmarshal([]byte(reqdata.RoleData), &jdata)
+	if ctx.RespErr(err, &errcode) {
+		return
+	}
+	result := ""
+	for k, v := range jdata {
+		role_check(k, jparent, v.(map[string]interface{}), &result)
+	}
+	if ctx.RespErrString(len(result) > 0, &errcode, "权限不可大于上级角色") {
+		return
+	}
+	sql = "insert into admin_role(RoleName,SellerId,Parent,RoleData)values(?,?,?,?)"
+	param := []interface{}{reqdata.RoleName, reqdata.SellerId, reqdata.Parent, reqdata.RoleData}
 	err = db.QueryNoResult(sql, param...)
 	if ctx.RespErr(err, &errcode) {
 		logs.Error(err)
@@ -862,7 +880,7 @@ func role_delete(ctx *abugo.AbuHttpContent) {
 	if ctx.RespErrString(token.SellerId > 0 && reqdata.SellerId != token.SellerId, &errcode, "运营商不正确") {
 		return
 	}
-	sql := "select id,Parent from admin_role where ParentSellerId = ? and Parent = ?"
+	sql := "select id,Parent from admin_role where SellerId = ? and Parent = ?"
 	var id int
 	var parent string
 	db.QueryScan(sql, []interface{}{reqdata.SellerId, reqdata.RoleName}, &id, &parent)
@@ -873,7 +891,7 @@ func role_delete(ctx *abugo.AbuHttpContent) {
 		return
 	}
 	id = 0
-	sql = "select id from admin_user where RoleSellerId = ? and RoleName = ?"
+	sql = "select id from admin_user where SellerId = ? and RoleName = ?"
 	db.QueryScan(sql, []interface{}{reqdata.SellerId, reqdata.RoleName}, &id)
 	if ctx.RespErrString(id > 0, &errcode, "该角色下存在账号,不可删除") {
 		return
@@ -1001,7 +1019,6 @@ func user_list(ctx *abugo.AbuHttpContent) {
 		Id           int
 		Account      string
 		SellerId     int
-		RoleSellerId int
 		RoleName     string
 		Remark       string
 		State        int
@@ -1031,7 +1048,6 @@ func user_modify(ctx *abugo.AbuHttpContent) {
 		Account      string `validate:"required"`
 		SellerId     int    `validate:"required"`
 		Password     string
-		RoleSellerId int    `validate:"required"`
 		RoleName     string `validate:"required"`
 		State        int    `validate:"required"`
 		Remark       string
@@ -1049,21 +1065,18 @@ func user_modify(ctx *abugo.AbuHttpContent) {
 	if ctx.RespErrString(token.SellerId > 0 && reqdata.SellerId != token.SellerId, &errcode, "运营商不正确") {
 		return
 	}
-	if ctx.RespErrString(reqdata.RoleSellerId != -1 && reqdata.RoleSellerId != reqdata.SellerId, &errcode, "运营商不正确") {
-		return
-	}
 	sql := "select id from admin_role  where SellerId = ? and RoleName = ?"
 	var rid int
-	db.QueryScan(sql, []interface{}{reqdata.RoleSellerId, reqdata.RoleName}, &rid)
+	db.QueryScan(sql, []interface{}{reqdata.SellerId, reqdata.RoleName}, &rid)
 	if ctx.RespErrString(rid == 0, &errcode, "角色不存在") {
 		return
 	}
 	if len(reqdata.Password) > 0 {
-		sql = "update admin_user set RoleSellerId = ?,RoleName = ?,State = ?,Remark = ?,`Password` = ? where Account = ? and SellerId = ?"
-		db.QueryNoResult(sql, reqdata.RoleSellerId, reqdata.RoleName, reqdata.State, reqdata.Remark, reqdata.Password, reqdata.Account, reqdata.SellerId)
+		sql = "update admin_user set RoleName = ?,State = ?,Remark = ?,`Password` = ? where Account = ? and SellerId = ?"
+		db.QueryNoResult(sql, reqdata.RoleName, reqdata.State, reqdata.Remark, reqdata.Password, reqdata.Account, reqdata.SellerId)
 	} else {
-		sql = "update admin_user set RoleSellerId = ?,RoleName = ?,State = ?,Remark = ? where Account = ? and SellerId = ?"
-		db.QueryNoResult(sql, reqdata.RoleSellerId, reqdata.RoleName, reqdata.State, reqdata.Remark, reqdata.Account, reqdata.SellerId)
+		sql = "update admin_user set RoleName = ?,State = ?,Remark = ? where Account = ? and SellerId = ?"
+		db.QueryNoResult(sql, reqdata.RoleName, reqdata.State, reqdata.Remark, reqdata.Account, reqdata.SellerId)
 	}
 	if reqdata.State != 1 {
 		sql = "select Token from admin_user where Account = ? and SellerId = ? "
@@ -1107,7 +1120,6 @@ func user_add(ctx *abugo.AbuHttpContent) {
 		Account      string `validate:"required"`
 		SellerId     int    `validate:"required"`
 		Password     string `validate:"required"`
-		RoleSellerId int    `validate:"required"`
 		RoleName     string `validate:"required"`
 		State        int    `validate:"required"`
 		Remark       string
@@ -1125,12 +1137,9 @@ func user_add(ctx *abugo.AbuHttpContent) {
 	if ctx.RespErrString(token.SellerId > 0 && reqdata.SellerId != token.SellerId, &errcode, "运营商不正确") {
 		return
 	}
-	if ctx.RespErrString(reqdata.RoleSellerId != -1 && reqdata.RoleSellerId != reqdata.SellerId, &errcode, "运营商不正确") {
-		return
-	}
 	sql := "select id from admin_role  where SellerId = ? and RoleName = ?"
 	var rid int
-	db.QueryScan(sql, []interface{}{reqdata.RoleSellerId, reqdata.RoleName}, &rid)
+	db.QueryScan(sql, []interface{}{reqdata.SellerId, reqdata.RoleName}, &rid)
 	if ctx.RespErrString(rid == 0, &errcode, "角色不存在") {
 		return
 	}
@@ -1140,8 +1149,8 @@ func user_add(ctx *abugo.AbuHttpContent) {
 	if ctx.RespErrString(uid > 0, &errcode, "账号已经存在") {
 		return
 	}
-	sql = "insert into admin_user(Account,Password,SellerId,RoleSellerId,RoleName,State)values(?,?,?,?,?,?)"
-	db.QueryNoResult(sql, reqdata.Account, reqdata.Password, reqdata.SellerId, reqdata.RoleSellerId, reqdata.RoleName, reqdata.State)
+	sql = "insert into admin_user(Account,Password,SellerId,RoleName,State)values(?,?,?,?,?)"
+	db.QueryNoResult(sql, reqdata.Account, reqdata.Password, reqdata.SellerId, reqdata.RoleName, reqdata.State)
 	WriteAdminLog("添加管理员", ctx, reqdata)
 	ctx.RespOK()
 }
@@ -1199,43 +1208,4 @@ func seller_name(ctx *abugo.AbuHttpContent) {
 	}
 	dbresult.Close()
 	ctx.RespOK(data)
-}
-
-func seller_flush(ctx *abugo.AbuHttpContent) {
-	sql := fmt.Sprintf("select * from %sseller", DbPrefix)
-	dbresult, err := db.Conn().Query(sql)
-	errcode := 0
-	if ctx != nil {
-		if ctx.RespErr(err, &errcode) {
-			return
-		}
-	} else {
-		if err != nil {
-			logs.Error(err)
-			return
-		}
-	}
-	for dbresult.Next() {
-		data := CacheSellerData{}
-		abugo.GetDbResult(dbresult, &data)
-		if data.State == 1 {
-			redis.HSet("x_hash:seller", fmt.Sprint(data.SellerId), data)
-		} else {
-			redis.HDel("x_hash:seller", fmt.Sprint(data.SellerId))
-		}
-	}
-	dbresult.Close()
-	if ctx != nil {
-		ctx.RespOK()
-	}
-}
-
-func GetSeller(SellerId int) *CacheSellerData {
-	data := redis.HGet("x_hash:seller", fmt.Sprint(SellerId))
-	if data != nil {
-		r := CacheSellerData{}
-		json.Unmarshal(data.([]uint8), &r)
-		return &r
-	}
-	return nil
 }

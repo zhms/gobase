@@ -31,25 +31,20 @@
 		</div>
 		<!-- 对话框 -->
 		<div>
-			<el-dialog :title="dialog.title" :visible.sync="dialog.show" width="500px" center>
+			<el-dialog :title="dialog.title" :visible.sync="dialog.show" width="400px" center>
 				<div>
 					<el-form :inline="true" :model="filters">
-						<el-form-item label="角色名:" style="margin-left: 25px">
+						<el-form-item label="角色名:" style="margin-left: 15px">
 							<el-input v-model="dialog.data.RoleName" :disabled="dialog.type == 'modify'"></el-input>
 						</el-form-item>
-						<el-form-item label="上级运营商:" v-show="zong">
-							<el-select v-model="dialog.data.ParentSellerId" placeholder="请选择" style="width: 130px" :disabled="dialog.type == 'modify'" @change="handleDialogSelectParentSellerId">
+						<el-form-item label="运营商:" v-show="zong" style="margin-left: 15px">
+							<el-select v-model="dialog.data.SellerId" placeholder="请选择" style="" :disabled="dialog.type == 'modify'" @change="handleDialogSelectSellerId">
 								<el-option v-for="item in seller_noall" :key="item.SellerId" :label="item.SellerName" :value="item.SellerId"> </el-option>
 							</el-select>
 						</el-form-item>
 						<el-form-item label="上级角色:" v-show="zong">
-							<el-select v-model="dialog.data.Parent" placeholder="请选择" style="width: 130px" :disabled="dialog.type == 'modify'" @change="handleDialogSelectRole">
+							<el-select v-model="dialog.data.Parent" placeholder="请选择" style="" :disabled="dialog.type == 'modify'" @change="handleDialogSelectRole">
 								<el-option v-for="item in dialog.options.Parents" :key="item.RoleName" :label="item.RoleName" :value="item.RoleName"> </el-option>
-							</el-select>
-						</el-form-item>
-						<el-form-item label="运营商:" v-show="zong" style="margin-left: 30px">
-							<el-select v-model="dialog.data.SellerId" placeholder="请选择" style="width: 130px" :disabled="dialog.type == 'modify'">
-								<el-option v-for="item in seller_noall" :key="item.SellerId" :label="item.SellerName" :value="item.SellerId"> </el-option>
 							</el-select>
 						</el-form-item>
 					</el-form>
@@ -100,10 +95,10 @@ export default {
 		handleSelectSeller() {
 			app.setCurrentSeller(this.filters.SellerId)
 		},
-		handleDialogSelectParentSellerId() {
+		handleDialogSelectSellerId() {
 			this.dialog.show_tree = false
 			this.dialog.data.Parent = null
-			app.post('/admin/role/listall', { SellerId: this.dialog.data.ParentSellerId }, (result) => {
+			app.post('/admin/role/listall', { SellerId: this.dialog.data.SellerId }, (result) => {
 				let parents = []
 				for (let i = 0; i < result.data.length; i++) {
 					parents.push({ RoleName: result.data[i] })
@@ -112,7 +107,7 @@ export default {
 			})
 		},
 		handleDialogSelectRole() {
-			app.post('/admin/role/roledata', { SellerId: this.dialog.data.ParentSellerId, RoleName: this.dialog.data.Parent }, (result) => {
+			app.post('/admin/role/roledata', { SellerId: this.dialog.data.SellerId, RoleName: this.dialog.data.Parent }, (result) => {
 				this.dialog.parentroledata = JSON.parse(result.data.RoleData)
 				this.dialog.superroledata = JSON.parse(result.data.SuperRoleData)
 				this.dialog.show_tree = true
@@ -164,7 +159,7 @@ export default {
 			setTimeout(() => {
 				this.$refs.authtree.root.setData([])
 			}, 10)
-			app.post('/admin/role/roledata', { SellerId: this.dialog.data.ParentSellerId, RoleName: this.dialog.data.Parent }, (resulta) => {
+			app.post('/admin/role/roledata', { SellerId: this.dialog.data.SellerId, RoleName: this.dialog.data.Parent }, (resulta) => {
 				this.dialog.parentroledata = JSON.parse(resulta.data.RoleData)
 				this.dialog.superroledata = JSON.parse(resulta.data.SuperRoleData)
 				app.post('/admin/role/roledata', { SellerId: this.dialog.data.SellerId, RoleName: this.dialog.data.RoleName }, (resultb) => {
@@ -197,7 +192,6 @@ export default {
 		},
 		handleConfirm() {
 			if (!this.dialog.data.RoleName) return this.$message.error('请填写角色名')
-			if (!this.dialog.data.ParentSellerId) return this.$message.error('请选择上角色运营商')
 			if (!this.dialog.data.Parent) return this.$message.error('请选择上级角色')
 			if (!this.dialog.data.SellerId) return this.$message.error('请选择运营商')
 			let setdisable = (node) => {

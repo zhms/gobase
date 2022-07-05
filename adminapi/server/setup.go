@@ -89,7 +89,6 @@ func SetupDatabase() {
 			Id int(11) NOT NULL AUTO_INCREMENT,
 			RoleName varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
 			SellerId int(11) NOT NULL,
-			ParentSellerId int(11) NOT NULL COMMENT '上级角色运营商',
 			Parent varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '上级角色',
 			RoleData text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '角色数据',
 			CreateTime datetime(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0) COMMENT '创建时间',
@@ -98,14 +97,13 @@ func SetupDatabase() {
 		) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = DYNAMIC;`
 	sql = replace_sql(sql)
 	db.QueryNoResult(sql)
-	sql = "INSERT IGNORE INTO `admin_role` VALUES (1, '超级管理员', -1, -1, 'god', '{}', now());"
+	sql = "INSERT IGNORE INTO `admin_role` VALUES (1, '超级管理员', -1, 'god', '{}', now());"
 	db.QueryNoResult(sql)
 	sql = `CREATE TABLE IF NOT EXISTS admin_user  (
 			Id int(11) NOT NULL AUTO_INCREMENT,
 			Account varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '账号',
 			Password varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '密码',
 			SellerId int(11) NOT NULL COMMENT '运营商',
-			RoleSellerId int(255) NOT NULL DEFAULT -1 COMMENT '角色所属运营商,只能是-1或与SellerId一致',
 			RoleName varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '角色名',
 			State int(255) NULL DEFAULT 1 COMMENT '状态 1启用 2禁用',
 			Token varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT 'token',

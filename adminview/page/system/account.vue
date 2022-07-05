@@ -23,7 +23,6 @@
 				<el-table-column align="center" prop="Id" label="id" width="80"></el-table-column>
 				<el-table-column align="center" prop="Account" label="账号" width="100"></el-table-column>
 				<el-table-column align="center" prop="SellerName" label="运营商" width="130"></el-table-column>
-				<el-table-column align="center" prop="RoleSellerName" label="角色运营商" width="130"></el-table-column>
 				<el-table-column align="center" prop="RoleName" label="角色" width="150"></el-table-column>
 				<el-table-column align="center" label="状态" width="100">
 					<template slot-scope="scope">
@@ -55,17 +54,12 @@
 						<el-input v-model="dialog.data.Account" :disabled="dialog.type == 'modify'"></el-input>
 					</el-form-item>
 					<el-form-item label="运营商:" v-show="zong">
-						<el-select v-model="dialog.data.SellerId" placeholder="运营商" style="width: 150px" :disabled="dialog.type == 'modify'">
+						<el-select v-model="dialog.data.SellerId" placeholder="运营商" style="width: 150px" :disabled="dialog.type == 'modify'" @change="handleSelectRoleSeller">
 							<el-option v-for="item in seller_noall" :key="item.SellerId" :label="item.SellerName" :value="item.SellerId"> </el-option>
 						</el-select>
 					</el-form-item>
 					<el-form-item label="密码:">
 						<el-input v-model="dialog.data.Password" show-password style="width: 200px"></el-input>
-					</el-form-item>
-					<el-form-item label="角色运营商:" v-show="zong">
-						<el-select v-model="dialog.data.RoleSellerId" placeholder="运营商" style="width: 150px" @change="handleSelectRoleSeller">
-							<el-option v-for="item in seller_noall" :key="item.SellerId" :label="item.SellerName" :value="item.SellerId"> </el-option>
-						</el-select>
 					</el-form-item>
 					<el-form-item label="角色:">
 						<el-select v-model="dialog.data.RoleName" placeholder="请选择" style="width: 200px">
@@ -147,7 +141,7 @@ export default {
 		},
 		handleSelectRoleSeller() {
 			this.dialog.data.RoleName = null
-			app.post('/admin/role/listall', { SellerId: this.dialog.data.RoleSellerId }, (result) => {
+			app.post('/admin/role/listall', { SellerId: this.dialog.data.SellerId }, (result) => {
 				this.dialog.options.role = []
 				for (let i = 0; i < result.data.length; i++) {
 					this.dialog.options.role.push({ RoleName: result.data[i] })
