@@ -3,7 +3,7 @@ server:
   snowflakenode: 1 #分布式id生成器节点
   http:
     http:
-      port: 4514
+      port: 4511
   token:
     host: 127.0.0.1
     port: 6379

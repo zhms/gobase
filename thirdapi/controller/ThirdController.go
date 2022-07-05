@@ -12,7 +12,7 @@ type ThirdController struct {
 }
 
 func (c *ThirdController) Init() {
-	group := server.Http().NewGroup("/v1/third")
+	group := server.Http().NewGroup("/third/v1")
 	{
 		group.PostNoAuth("/user_register", third_user_register)
 		group.PostNoAuth("/get_balance", third_get_balance)
@@ -44,7 +44,7 @@ func third_user_register(ctx *abugo.AbuHttpContent) {
 	if ctx.RespErrString(!server.Debug() && !abugo.RsaVerify(reqdata, seller.ApiThirdPublicKey), &errcode, "签名不正确") {
 		return
 	}
-	sql := fmt.Sprintf("call %sapi_third_register(?,?,?,?)", server.DbPrefix)
+	sql := fmt.Sprintf("call %sthird_register(?,?,?,?)", server.DbPrefix)
 	dbresult, err := server.Db().Conn().Query(sql, reqdata.UniqueId, reqdata.SellerId, reqdata.Password, "{}")
 	if ctx.RespErr(err, &errcode) {
 		return
@@ -62,7 +62,9 @@ func third_user_register(ctx *abugo.AbuHttpContent) {
 		}
 	}
 	retdata.Timestamp = time.Now().Unix()
-	retdata.Sign = abugo.RsaSign(retdata, seller.ApiPrivateKey)
+	if !server.Debug() {
+		retdata.Sign = abugo.RsaSign(retdata, seller.ApiPrivateKey)
+	}
 	ctx.RespOK(retdata)
 }
 
@@ -71,7 +73,7 @@ func third_get_balance(ctx *abugo.AbuHttpContent) {
 	type RequestData struct {
 		Sign      string `validate:"required"`
 		SellerId  int    `validate:"required"`
-		UserId    string `validate:"required"`
+		UserId    int32  `validate:"required"`
 		Symbol    string `validate:"required"`
 		AssetType int    `validate:"required"`
 		TimeStamp int64  `validate:"required"`
@@ -106,7 +108,9 @@ func third_get_balance(ctx *abugo.AbuHttpContent) {
 	}
 	dbresult.Close()
 	retdata.Timestamp = time.Now().Unix()
-	retdata.Sign = abugo.RsaSign(retdata, seller.ApiPrivateKey)
+	if !server.Debug(){
+		retdata.Sign = abugo.RsaSign(retdata, seller.ApiPrivateKey)
+	}
 	ctx.RespOK(retdata)
 }
 

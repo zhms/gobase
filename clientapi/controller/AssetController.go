@@ -21,7 +21,7 @@ func (c *AssetController) Init() {
 func (c *AssetController) list(ctx *abugo.AbuHttpContent) {
 	token := server.GetToken(ctx)
 	errcode := 0
-	queryresult, err := server.Db().Conn().Query("select Symbol,AssetType,AssetAmt,FrozenAmt from ex_asset where userid = ?", token.UserId)
+	queryresult, err := server.Db().Conn().Query("select Symbol,AssetType,AssetAmt,FrozenAmt from x_asset where userid = ?", token.UserId)
 	if ctx.RespErr(err, &errcode) {
 		return
 	}

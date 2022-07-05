@@ -50,6 +50,19 @@ type TokenData struct {
 	SellerId int
 }
 
+type SellerData struct {
+	SellerId              int
+	SellerName            string
+	State                 int
+	ApiPublicKey          string
+	ApiPrivateKey         string
+	ApiThirdPublicKey     string
+	ApiRiskPublicKey      string
+	ApiRiskPrivateKey     string
+	ApiRiskThirdPublicKey string
+}
+
+
 func GetToken(ctx *abugo.AbuHttpContent) *TokenData {
 	td := TokenData{}
 	err := json.Unmarshal([]byte(ctx.TokenData), &td)
@@ -57,4 +70,19 @@ func GetToken(ctx *abugo.AbuHttpContent) *TokenData {
 		return nil
 	}
 	return &td
+}
+
+
+func GetSeller(SellerId int) *SellerData {
+	sql := "select * from x_seller where SellerId = ?"
+	dbresult,err := db.Conn().Query(sql,SellerId)
+	if err != nil{
+		return nil
+	}
+	if dbresult.Next() {
+		r := SellerData{}
+		abugo.GetDbResult(dbresult,&r)
+		return &r
+	}
+	return nil
 }

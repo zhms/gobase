@@ -85,7 +85,7 @@ func (c *UserController) login_password(ctx *abugo.AbuHttpContent) {
 	extra.Ip = ctx.GetIp()
 	strextra, _ := json.Marshal(&extra)
 	dbconn := server.Db().Conn()
-	queryresult, err := dbconn.Query("call ex_api_user_login_password(?,?,?,?)", reqdata.Account, reqdata.SellerId, reqdata.Password, string(strextra))
+	queryresult, err := dbconn.Query("call x_api_user_login_password(?,?,?,?)", reqdata.Account, reqdata.SellerId, reqdata.Password, string(strextra))
 	if ctx.RespErr(err, &errcode) {
 		return
 	}
@@ -125,7 +125,7 @@ func (c *UserController) login_verifycode(ctx *abugo.AbuHttpContent) {
 	extra.Ip = ctx.GetIp()
 	strextra, _ := json.Marshal(&extra)
 	dbconn := server.Db().Conn()
-	queryresult, err := dbconn.Query("call ex_api_user_login_verifycode(?,?,?,?,?)", reqdata.Account, reqdata.SellerId, reqdata.Password, reqdata.VerifyCode, string(strextra))
+	queryresult, err := dbconn.Query("call x_api_user_login_verifycode(?,?,?,?,?)", reqdata.Account, reqdata.SellerId, reqdata.Password, reqdata.VerifyCode, string(strextra))
 	if ctx.RespErr(err, &errcode) {
 		return
 	}

@@ -253,11 +253,11 @@ proc:BEGIN
 	SET @ErrCode = @ErrCode + 1;
 	SET @Email = NULL;
 	SET @PhoneNum = NULL;
-	IF LOCATE('@',p_Account) > 0 THEN
-		SET @Email = p_Account;
-	ELSE
-		SET @PhoneNum = p_Account;
-	END IF;
+	#IF LOCATE('@',p_Account) > 0 THEN
+	#	SET @Email = p_Account;
+	#ELSE
+	#	SET @PhoneNum = p_Account;
+	#END IF;
 	#DELETE FROM ex_user WHERE Account = p_Account;
 	IF EXISTS(SELECT UserId FROM ex_user WHERE Account = p_Account) THEN
 		SELECT @ErrCode AS errcode,'账号已经存在' AS errmsg;
