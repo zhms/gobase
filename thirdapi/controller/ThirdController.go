@@ -18,6 +18,7 @@ func (c *ThirdController) Init() {
 		group.PostNoAuth("/get_balance", third_get_balance)
 		group.PostNoAuth("/transfer_in", third_transfer_in)
 		group.PostNoAuth("/transfer_out", third_transfer_out)
+		group.PostNoAuth("/transfer_order", third_transfer_order)
 		group.PostNoAuth("/server_login", third_server_login)
 	}
 }
@@ -165,12 +166,46 @@ func third_transfer_in(ctx *abugo.AbuHttpContent) {
 	ctx.RespOK(retdata)
 }
 
+func third_transfer_order(ctx *abugo.AbuHttpContent){
+	defer recover()
+	type RequestData struct {
+		Sign      string `validate:"required"`
+		SellerId  int    `validate:"required"`
+		OrderId   int64  `validate:"required"`
+		TimeStamp int64  `validate:"required"`
+	}
+	errcode := 0
+	reqdata := RequestData{}
+	err := ctx.RequestData(&reqdata)
+	if ctx.RespErr(err, &errcode) {
+		return
+	}
+	seller := server.GetSeller(reqdata.SellerId)
+	if ctx.RespErrString(seller == nil, &errcode, "商户不存在") {
+		return
+	}
+	if ctx.RespErrString(!server.Debug() && !abugo.RsaVerify(reqdata, seller.ApiThirdPublicKey), &errcode, "签名不正确") {
+		return
+	}
+	sql := "select State,Memo from x_transfer_in where sellerid = ? and orderid = ?"
+	var state int64
+	var memo string
+	if state == 0 {
+		memo = "订单不存在"
+	}
+	server.Db().QueryScan(sql,[]interface{}{reqdata.SellerId,reqdata.OrderId},&state,&memo)
+	ctx.Put("OrderId", reqdata.OrderId)
+	ctx.Put("State", state)
+	ctx.Put("Memo", memo)
+	ctx.RespOK()
+}
+
 func third_transfer_out(ctx *abugo.AbuHttpContent) {
 	defer recover()
 	type RequestData struct {
 		Sign      string `validate:"required"`
 		SellerId  int    `validate:"required"`
-		UserId    string `validate:"required"`
+		UserId    int32 `validate:"required"`
 		Symbol    string `validate:"required"`
 		AssetType int    `validate:"required"`
 		OrderId   int64  `validate:"required"`
@@ -191,7 +226,7 @@ func third_transfer_out(ctx *abugo.AbuHttpContent) {
 	if ctx.RespErrString(!server.Debug() && !abugo.RsaVerify(reqdata, seller.ApiThirdPublicKey), &errcode, "签名不正确") {
 		return
 	}
-	sql := fmt.Sprintf("call %sapi_transfer_in_out(?,?,?,?,?,?,?,?,?)", server.DbPrefix)
+	sql := fmt.Sprintf("call %sthird_transfer_in_out(?,?,?,?,?,?,?,?,?)", server.DbPrefix)
 	dbresult, err := server.Db().Conn().Query(sql, reqdata.OrderId, reqdata.UserId, reqdata.SellerId, reqdata.AssetType, reqdata.Symbol, reqdata.Amount, "{}", 1, "钱包转入")
 	if ctx.RespErr(err, &errcode) {
 		return
@@ -209,7 +244,9 @@ func third_transfer_out(ctx *abugo.AbuHttpContent) {
 		}
 	}
 	retdata.TimeStamp = time.Now().Unix()
-	retdata.Sign = abugo.RsaSign(retdata, seller.ApiPrivateKey)
+	if !server.Debug() {
+		retdata.Sign = abugo.RsaSign(retdata, seller.ApiPrivateKey)
+	}
 	ctx.RespOK(retdata)
 }
 
@@ -268,6 +305,8 @@ func third_server_login(ctx *abugo.AbuHttpContent) {
 	tokendata.SellerId = reqdata.SellerId
 	server.Redis().SetEx(fmt.Sprint("exchange:third:server:login:", retdata.Token), 60*5, tokendata)
 	retdata.TimeStamp = time.Now().Unix()
-	retdata.Sign = abugo.RsaSign(retdata, seller.ApiPrivateKey)
+	if !server.Debug() {
+		retdata.Sign = abugo.RsaSign(retdata, seller.ApiPrivateKey)
+	}
 	ctx.RespOK(retdata)
 }

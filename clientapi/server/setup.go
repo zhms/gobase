@@ -413,7 +413,7 @@ proc:BEGIN
 		LEAVE proc;
 	END IF;
 	SET @AssetAmt = NULL;
-	SELECT AssetAmt INTO @AssetAmt WHERE UserId = p_UserId AND AssetType = p_AssetType AND Symbol = p_Symbol FOR UPDATE;
+	SELECT AssetAmt INTO @AssetAmt from ex_asset WHERE UserId = p_UserId AND AssetType = p_AssetType AND Symbol = p_Symbol FOR UPDATE;
 	IF FOUND_ROWS() = 0 THEN
 		SET @AssetAmt = 0;
 		INSERT INTO ex_asset(UserId,SellerId,AssetType,Symbol,AssetAmt,FrozenAmt)
