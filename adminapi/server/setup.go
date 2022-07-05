@@ -33,7 +33,7 @@ func replace_sql(sql string) string {
 	sql = strings.Replace(sql, "ex_verify", db_verify_tablename, -1)
 	sql = strings.Replace(sql, "ex_transfer_in", db_transfer_in_tablename, -1)
 	sql = strings.Replace(sql, "ex_transfer_out", db_transfer_out_tablename, -1)
-	sql = strings.Replace(sql, "ex_sasset_change_reason", db_asset_change_reason_tablename, -1)
+	sql = strings.Replace(sql, "ex_asset_change_reason", db_asset_change_reason_tablename, -1)
 	sql = strings.Replace(sql, "ex_asset_log", db_asset_log_tablename, -1)
 	sql = strings.Replace(sql, "ex_", DbPrefix, -1)
 	return sql

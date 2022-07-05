@@ -119,7 +119,7 @@ func third_transfer_in(ctx *abugo.AbuHttpContent) {
 	type RequestData struct {
 		Sign      string `validate:"required"`
 		SellerId  int    `validate:"required"`
-		UserId    string `validate:"required"`
+		UserId    int32 `validate:"required"`
 		Symbol    string `validate:"required"`
 		AssetType int    `validate:"required"`
 		OrderId   int64  `validate:"required"`
@@ -140,7 +140,7 @@ func third_transfer_in(ctx *abugo.AbuHttpContent) {
 	if ctx.RespErrString(!server.Debug() && !abugo.RsaVerify(reqdata, seller.ApiThirdPublicKey), &errcode, "签名不正确") {
 		return
 	}
-	sql := fmt.Sprintf("call %sapi_transfer_in_in(?,?,?,?,?,?,?,?,?)", server.DbPrefix)
+	sql := fmt.Sprintf("call %sthird_transfer_in_in(?,?,?,?,?,?,?,?,?)", server.DbPrefix)
 	dbresult, err := server.Db().Conn().Query(sql, reqdata.OrderId, reqdata.UserId, reqdata.SellerId, reqdata.AssetType, reqdata.Symbol, reqdata.Amount, "{}", 1, "钱包转入")
 	if ctx.RespErr(err, &errcode) {
 		return
@@ -158,7 +158,9 @@ func third_transfer_in(ctx *abugo.AbuHttpContent) {
 		}
 	}
 	retdata.Timestamp = time.Now().Unix()
-	retdata.Sign = abugo.RsaSign(retdata, seller.ApiPrivateKey)
+	if !server.Debug(){
+		retdata.Sign = abugo.RsaSign(retdata, seller.ApiPrivateKey)
+	}
 	ctx.Put("balance", retdata.Balance)
 	ctx.RespOK(retdata)
 }

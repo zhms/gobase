@@ -28,7 +28,7 @@ func replace_sql(sql string) string {
 	sql = strings.Replace(sql, "ex_verify", db_verify_tablename, -1)
 	sql = strings.Replace(sql, "ex_transfer_in", db_transfer_in_tablename, -1)
 	sql = strings.Replace(sql, "ex_transfer_out", db_transfer_out_tablename, -1)
-	sql = strings.Replace(sql, "ex_sasset_change_reason", db_asset_change_reason_tablename, -1)
+	sql = strings.Replace(sql, "ex_asset_change_reason", db_asset_change_reason_tablename, -1)
 	sql = strings.Replace(sql, "ex_asset_log", db_asset_log_tablename, -1)
 	sql = strings.Replace(sql, "ex_", DbPrefix, -1)
 	return sql
@@ -127,6 +127,13 @@ func SetupDatabase() {
 		   ) ENGINE = MyISAM AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;`
 	sql = replace_sql(sql)
 	db.QueryNoResult(sql)
+
+	sql = "INSERT IGNORE INTO `x_asset_change_reason` VALUES (1, '钱包转入', now());"
+	db.QueryNoResult(sql)
+
+	sql = "INSERT IGNORE INTO `x_asset_change_reason` VALUES (2, '钱包转出', now());"
+	db.QueryNoResult(sql)
+
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	sql = `CREATE TABLE IF NOT EXISTS ex_asset_log  (
 			Id int(11) NOT NULL AUTO_INCREMENT COMMENT 'id',
