@@ -98,10 +98,6 @@ app.get = function (url, p1, p2) {
 }
 //post请求
 app.post = function (url, data, callback, noloading) {
-	if (!data.IgnoreSeller) {
-		app.setCurrentSeller(data.SellerId)
-		delete data.IgnoreSeller
-	}
 	noloading = false
 	if (!noloading) app.showLoading(true)
 	service({
@@ -211,7 +207,14 @@ app.zong = function () {
 	return app.getInfo().SellerId == -1
 }
 
-app.getSeller = function (callback) {
+app.flushSeller = function () {
+	app.post('/seller/name', {}, (result) => {
+		sessionStorage.setItem('seller', JSON.stringify(result.data))
+		this.seller = result.data
+	})
+}
+
+app.getSeller = function () {
 	if (!this.seller) {
 		try {
 			this.seller = JSON.parse(sessionStorage.getItem('seller'))
@@ -232,6 +235,7 @@ app.getSellerNoAll = function () {
 	}
 	return this.seller_noall
 }
+
 app.getSellerNoZong = function () {
 	if (!this.seller_nozong) {
 		try {
@@ -250,6 +254,7 @@ app.getSellerNoZong = function () {
 	}
 	return this.seller_nozong
 }
+
 app.currentSeller = function () {
 	if (!app.zong()) {
 		return app.getInfo().SellerId

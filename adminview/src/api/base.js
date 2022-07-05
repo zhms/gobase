@@ -22,68 +22,6 @@ export default {
 				options: {},
 				data: {},
 			},
-			hgames_all: [
-				{
-					id: 0,
-					name: '全部游戏',
-				},
-				{
-					id: 1,
-					name: '哈希单双',
-				},
-				{
-					id: 2,
-					name: '哈希大小',
-				},
-				{
-					id: 3,
-					name: '哈希牛牛',
-				},
-				{
-					id: 4,
-					name: '幸运哈希',
-				},
-				{
-					id: 5,
-					name: '幸运庄闲',
-				},
-			],
-			hgames: [
-				{
-					id: 1,
-					name: '哈希单双',
-				},
-				{
-					id: 2,
-					name: '哈希大小',
-				},
-				{
-					id: 3,
-					name: '哈希牛牛',
-				},
-				{
-					id: 4,
-					name: '幸运哈希',
-				},
-				{
-					id: 5,
-					name: '幸运庄闲',
-				},
-			],
-			hrooms: [
-				{
-					id: 1,
-					name: '初级场',
-				},
-				{
-					id: 2,
-					name: '中级场',
-				},
-				{
-					id: 3,
-					name: '高级场',
-				},
-			],
 		}
 	},
 }

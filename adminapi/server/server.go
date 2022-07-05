@@ -192,28 +192,6 @@ func Init() {
 	db = new(abugo.AbuDb)
 	db.Init("server.db")
 	SetupDatabase()
-	{
-		http.PostNoAuth("/admin/user/login", user_login)
-		http.Post("/admin/login_log", login_log)
-		http.Post("/admin/role/list", role_list)
-		http.Post("/admin/role/listall", role_listall)
-		http.Post("/admin/role/roledata", role_data)
-		http.Post("/admin/role/modify", role_modify)
-		http.Post("/admin/role/add", role_add)
-		http.Post("/admin/role/delete", role_delete)
-		http.Post("/admin/opt_log", opt_log)
-		http.Post("/admin/user/list", user_list)
-		http.Post("/admin/user/modify", user_modify)
-		http.Post("/admin/user/delete", user_delete)
-		http.Post("/admin/user/add", user_add)
-		http.Post("/admin/user/google", user_google)
-		http.Post("seller/name", seller_name)
-		http.Post("seller/list", seller_list)
-		http.Post("seller/add", seller_add)
-		http.Post("seller/delete", seller_delete)
-		http.Post("seller/modify", seller_modify)
-		http.Post("seller/flush", seller_flush)
-	}
 	sql := "select RoleData from admin_role where SellerId = -1 and RoleName = '超级管理员'"
 	var dbauthdata string
 	db.QueryScan(sql, []interface{}{}, &dbauthdata)
@@ -246,6 +224,28 @@ func Init() {
 		db.QueryNoResult(sql, AuthDataStr)
 	}
 	seller_flush(nil)
+	{
+		http.PostNoAuth("/admin/user/login", user_login)
+		http.Post("/admin/login_log", login_log)
+		http.Post("/admin/role/list", role_list)
+		http.Post("/admin/role/listall", role_listall)
+		http.Post("/admin/role/roledata", role_data)
+		http.Post("/admin/role/modify", role_modify)
+		http.Post("/admin/role/add", role_add)
+		http.Post("/admin/role/delete", role_delete)
+		http.Post("/admin/opt_log", opt_log)
+		http.Post("/admin/user/list", user_list)
+		http.Post("/admin/user/modify", user_modify)
+		http.Post("/admin/user/delete", user_delete)
+		http.Post("/admin/user/add", user_add)
+		http.Post("/admin/user/google", user_google)
+		http.Post("seller/name", seller_name)
+		http.Post("seller/list", seller_list)
+		http.Post("seller/add", seller_add)
+		http.Post("seller/delete", seller_delete)
+		http.Post("seller/modify", seller_modify)
+		http.Post("seller/flush", seller_flush)
+	}
 }
 func clean_auth(node map[string]interface{}) {
 	for k, v := range node {

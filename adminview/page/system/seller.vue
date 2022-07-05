@@ -103,22 +103,24 @@ export default {
 		},
 		handleConfirm() {
 			if (this.dialog.type == 'modify') {
-				this.dialog.data.IgnoreSeller = true
 				app.post('/seller/modify', this.dialog.data, () => {
 					this.dialog.show = false
+					app.flushSeller()
 					this.handleQuery(this.page)
 				})
 			}
 			if (this.dialog.type == 'add') {
 				app.post('/seller/add', this.dialog.data, () => {
 					this.dialog.show = false
+					app.flushSeller()
 					this.handleQuery(this.page)
 				})
 			}
 		},
 		handleDelete(index) {
 			if (confirm('确定删除该运营商?')) {
-				app.post('/seller/delete', { SellerId: this.table_data[index].SellerId, IgnoreSeller: true }, () => {
+				app.post('/seller/delete', { SellerId: this.table_data[index].SellerId }, () => {
+					app.flushSeller()
 					this.handleQuery(this.page)
 				})
 			}

@@ -4,7 +4,7 @@
 		<div>
 			<el-form :inline="true" :model="filters">
 				<el-form-item label="运营商:" v-show="zong">
-					<el-select v-model="filters.SellerId" placeholder="运营商" style="width: 130px">
+					<el-select v-model="filters.SellerId" placeholder="运营商" style="width: 130px" @change="handleSelectSeller">
 						<el-option v-for="item in seller" :key="item.SellerId" :label="item.SellerName" :value="item.SellerId"> </el-option>
 					</el-select>
 				</el-form-item>
@@ -97,10 +97,13 @@ export default {
 		auth2(o) {
 			return app.auth2('系统管理', '角色管理', o)
 		},
+		handleSelectSeller() {
+			app.setCurrentSeller(this.filters.SellerId)
+		},
 		handleDialogSelectParentSellerId() {
 			this.dialog.show_tree = false
 			this.dialog.data.Parent = null
-			app.post('/admin/role/listall', { SellerId: this.dialog.data.ParentSellerId, IgnoreSeller: true }, (result) => {
+			app.post('/admin/role/listall', { SellerId: this.dialog.data.ParentSellerId }, (result) => {
 				let parents = []
 				for (let i = 0; i < result.data.length; i++) {
 					parents.push({ RoleName: result.data[i] })
@@ -109,7 +112,7 @@ export default {
 			})
 		},
 		handleDialogSelectRole() {
-			app.post('/admin/role/roledata', { SellerId: this.dialog.data.ParentSellerId, IgnoreSeller: true, RoleName: this.dialog.data.Parent }, (result) => {
+			app.post('/admin/role/roledata', { SellerId: this.dialog.data.ParentSellerId, RoleName: this.dialog.data.Parent }, (result) => {
 				this.dialog.parentroledata = JSON.parse(result.data.RoleData)
 				this.dialog.superroledata = JSON.parse(result.data.SuperRoleData)
 				this.dialog.show_tree = true
@@ -161,10 +164,10 @@ export default {
 			setTimeout(() => {
 				this.$refs.authtree.root.setData([])
 			}, 10)
-			app.post('/admin/role/roledata', { SellerId: this.dialog.data.ParentSellerId, IgnoreSeller: true, RoleName: this.dialog.data.Parent }, (resulta) => {
+			app.post('/admin/role/roledata', { SellerId: this.dialog.data.ParentSellerId, RoleName: this.dialog.data.Parent }, (resulta) => {
 				this.dialog.parentroledata = JSON.parse(resulta.data.RoleData)
 				this.dialog.superroledata = JSON.parse(resulta.data.SuperRoleData)
-				app.post('/admin/role/roledata', { SellerId: this.dialog.data.SellerId, IgnoreSeller: true, RoleName: this.dialog.data.RoleName }, (resultb) => {
+				app.post('/admin/role/roledata', { SellerId: this.dialog.data.SellerId, RoleName: this.dialog.data.RoleName }, (resultb) => {
 					this.dialog.roledata = JSON.parse(resultb.data.RoleData)
 					this.dialog.show_tree = true
 					let treedata = this.getTreeData()
@@ -184,7 +187,6 @@ export default {
 				let data = {
 					SellerId: this.dialog.data.SellerId,
 					RoleName: this.dialog.data.RoleName,
-					IgnoreSeller: true,
 				}
 				app.post('/admin/role/delete', data, () => {
 					this.dialog.show = false
@@ -238,7 +240,6 @@ export default {
 					SellerId: this.dialog.data.SellerId,
 					RoleName: this.dialog.data.RoleName,
 					RoleData: JSON.stringify(newroledata),
-					IgnoreSeller: true,
 				}
 				app.post('/admin/role/add', data, () => {
 					this.dialog.show = false

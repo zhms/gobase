@@ -7,7 +7,7 @@
 					<el-input v-model="filters.Account" style="width: 150px" :clearable="true"></el-input>
 				</el-form-item>
 				<el-form-item label="运营商:" v-show="zong">
-					<el-select v-model="filters.SellerId" placeholder="运营商" style="width: 130px">
+					<el-select v-model="filters.SellerId" placeholder="运营商" style="width: 130px" @change="handleSelectSeller">
 						<el-option v-for="item in seller" :key="item.SellerId" :label="item.SellerName" :value="item.SellerId"> </el-option>
 					</el-select>
 				</el-form-item>
@@ -139,12 +139,15 @@ export default {
 		auth2(o) {
 			return app.auth2('系统管理', '账号管理', o)
 		},
+		handleSelectSeller() {
+			app.setCurrentSeller(this.filters.SellerId)
+		},
 		handleShowEdit(index) {
 			return this.auth2('改') && this.table_data[index].RoleName != '运营商超级管理员'
 		},
 		handleSelectRoleSeller() {
 			this.dialog.data.RoleName = null
-			app.post('/admin/role/listall', { SellerId: this.dialog.data.RoleSellerId, IgnoreSeller: true }, (result) => {
+			app.post('/admin/role/listall', { SellerId: this.dialog.data.RoleSellerId }, (result) => {
 				this.dialog.options.role = []
 				for (let i = 0; i < result.data.length; i++) {
 					this.dialog.options.role.push({ RoleName: result.data[i] })

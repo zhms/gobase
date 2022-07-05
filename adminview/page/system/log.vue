@@ -10,7 +10,7 @@
 					<el-input v-model="filters.Opt" style="width: 150px" :clearable="true"></el-input>
 				</el-form-item>
 				<el-form-item label="运营商:" v-show="zong">
-					<el-select v-model="filters.SellerId" placeholder="运营商" style="width: 130px">
+					<el-select v-model="filters.SellerId" placeholder="运营商" style="width: 130px" @change="handleSelectSeller">
 						<el-option v-for="item in seller" :key="item.SellerId" :label="item.SellerName" :value="item.SellerId"> </el-option>
 					</el-select>
 				</el-form-item>
@@ -58,6 +58,9 @@ export default {
 		this.handleQuery(1)
 	},
 	methods: {
+		handleSelectSeller() {
+			app.setCurrentSeller(this.filters.SellerId)
+		},
 		handleCopy(index) {
 			var oInput = document.createElement('input')
 			oInput.value = this.table_data[index].Data
