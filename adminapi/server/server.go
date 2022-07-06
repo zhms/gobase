@@ -285,6 +285,7 @@ func seller_change_key(ctx *abugo.AbuHttpContent) {
 	apirsariskkey := abugo.NewRsaKey()
 	sql = fmt.Sprintf("update %sseller set ApiRiskPublicKey = ?,ApiRiskPrivateKey = ? where SellerId = ?", dbprefix)
 	db.QueryNoResult(sql, apirsariskkey.Public, apirsariskkey.Private, reqdata.SellerId)
+	WriteAdminLog("更换运营商秘钥", ctx, reqdata)
 	ctx.RespOK()
 }
 
@@ -319,6 +320,7 @@ func seller_get_key(ctx *abugo.AbuHttpContent) {
 		abugo.GetDbResult(dbresult, &data)
 		ctx.Put("data", data)
 	}
+	WriteAdminLog("设置运营商秘钥", ctx, reqdata)
 	ctx.RespOK()
 }
 
@@ -988,6 +990,7 @@ func role_delete(ctx *abugo.AbuHttpContent) {
 	WriteAdminLog("删除角色", ctx, reqdata)
 	ctx.RespOK()
 }
+
 func opt_log(ctx *abugo.AbuHttpContent) {
 	defer recover()
 	type RequestData struct {
@@ -1265,6 +1268,7 @@ func user_google(ctx *abugo.AbuHttpContent) {
 	verifyurl := fmt.Sprintf("otpauth://totp/%s?secret=%s&issuer=abugo", reqdata.Account, verifykey)
 	sql := "update admin_user set GoogleSecret = ? where Account = ? and SellerId = ?"
 	db.QueryNoResult(sql, verifykey, reqdata.Account, reqdata.SellerId)
+	WriteAdminLog("修改管理员谷歌验证", ctx, reqdata)
 	ctx.RespOK(verifyurl)
 }
 
