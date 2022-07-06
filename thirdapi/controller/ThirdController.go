@@ -45,7 +45,7 @@ func third_user_register(ctx *abugo.AbuHttpContent) {
 	if ctx.RespErrString(!server.Debug() && !abugo.RsaVerify(reqdata, seller.ApiThirdPublicKey), &errcode, "签名不正确") {
 		return
 	}
-	sql := fmt.Sprintf("call %sthird_register(?,?,?,?)", server.DbPrefix)
+	sql := fmt.Sprintf("call %sthird_register(?,?,?,?)", server.DbPrefix())
 	dbresult, err := server.Db().Conn().Query(sql, reqdata.UniqueId, reqdata.SellerId, reqdata.Password, "{}")
 	if ctx.RespErr(err, &errcode) {
 		return
@@ -93,7 +93,7 @@ func third_get_balance(ctx *abugo.AbuHttpContent) {
 	if ctx.RespErrString(!server.Debug() && !abugo.RsaVerify(reqdata, seller.ApiThirdPublicKey), &errcode, "签名不正确") {
 		return
 	}
-	sql := fmt.Sprintf("select AssetAmt from %sasset where UserId = ? and AssetType = ? and Symbol = ?", server.DbPrefix)
+	sql := fmt.Sprintf("select AssetAmt from %sasset where UserId = ? and AssetType = ? and Symbol = ?", server.DbPrefix())
 	dbresult, err := server.Db().Conn().Query(sql, reqdata.UserId, reqdata.AssetType, reqdata.Symbol)
 	if ctx.RespErr(err, &errcode) {
 		return
@@ -141,7 +141,7 @@ func third_transfer_in(ctx *abugo.AbuHttpContent) {
 	if ctx.RespErrString(!server.Debug() && !abugo.RsaVerify(reqdata, seller.ApiThirdPublicKey), &errcode, "签名不正确") {
 		return
 	}
-	sql := fmt.Sprintf("call %sthird_transfer_in_in(?,?,?,?,?,?,?,?,?)", server.DbPrefix)
+	sql := fmt.Sprintf("call %sthird_transfer_in_in(?,?,?,?,?,?,?,?,?)", server.DbPrefix())
 	dbresult, err := server.Db().Conn().Query(sql, reqdata.OrderId, reqdata.UserId, reqdata.SellerId, reqdata.AssetType, reqdata.Symbol, reqdata.Amount, "{}", 1, "钱包转入")
 	if ctx.RespErr(err, &errcode) {
 		return
@@ -226,7 +226,7 @@ func third_transfer_out(ctx *abugo.AbuHttpContent) {
 	if ctx.RespErrString(!server.Debug() && !abugo.RsaVerify(reqdata, seller.ApiThirdPublicKey), &errcode, "签名不正确") {
 		return
 	}
-	sql := fmt.Sprintf("call %sthird_transfer_in_out(?,?,?,?,?,?,?,?,?)", server.DbPrefix)
+	sql := fmt.Sprintf("call %sthird_transfer_in_out(?,?,?,?,?,?,?,?,?)", server.DbPrefix())
 	dbresult, err := server.Db().Conn().Query(sql, reqdata.OrderId, reqdata.UserId, reqdata.SellerId, reqdata.AssetType, reqdata.Symbol, reqdata.Amount, "{}", 1, "钱包转入")
 	if ctx.RespErr(err, &errcode) {
 		return
@@ -277,7 +277,7 @@ func third_server_login(ctx *abugo.AbuHttpContent) {
 	if ctx.RespErrString(!server.Debug() && !abugo.RsaVerify(reqdata, seller.ApiThirdPublicKey), &errcode, "签名不正确") {
 		return
 	}
-	sql := fmt.Sprintf("select Password from %suser where UserId = ? and SellerId = ?", server.DbPrefix)
+	sql := fmt.Sprintf("select Password from %suser where UserId = ? and SellerId = ?", server.DbPrefix())
 	dbresult, err := server.Db().Conn().Query(sql, reqdata.UserId, reqdata.SellerId)
 	if ctx.RespErr(err, &errcode) {
 		return
