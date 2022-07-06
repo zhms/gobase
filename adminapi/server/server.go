@@ -28,19 +28,98 @@ type SellerData struct {
 	Remark     string
 	CreateTime string
 }
-
 func SystemName() string {
 	return systemname
 }
-
 func ModuleName() string {
 	return modulename
 }
-
 func DbPrefix() string {
 	return dbprefix
 }
-
+func Init() {
+	abugo.Init()
+	debug = viper.GetBool("server.debug")
+	systemname = viper.GetString("server.systemname")
+	modulename = viper.GetString("server.modulename")
+	dbprefix = viper.GetString("server.dbprefix")
+	http = new(abugo.AbuHttp)
+	http.Init("server.http.http.port")
+	redis = new(abugo.AbuRedis)
+	redis.Init("server.redis")
+	db = new(abugo.AbuDb)
+	db.Init("server.db")
+	SetupDatabase()
+	{
+		sql := fmt.Sprintf("select SellerId from %sseller",dbprefix)
+		dbresult , _ := db.Conn().Query(sql)
+		for dbresult.Next() {
+			var sellerid int
+			dbresult.Scan(&sellerid)
+			sql = "insert ignore into admin_role(RoleName,SellerId,Parent,RoleData)values(?,?,?,?)"
+			db.QueryNoResult(sql,"运营商超管",sellerid,"god",SellerAuthDataStr)
+		}
+		dbresult.Close()
+	}
+	{
+		sql := "update admin_role set RoleData = ? where RoleName = ?"
+		db.QueryNoResult(sql,SellerAuthDataStr,"运营商超管")
+	}
+	{
+		sql := "select RoleData from admin_role where SellerId = -1 and RoleName = '超级管理员'"
+		var dbauthdata string
+		db.QueryScan(sql, []interface{}{}, &dbauthdata)
+		if dbauthdata != AuthDataStr {
+			sql = "select Id,SellerId,RoleName,RoleData from admin_role"
+			dbresult, _ := db.Conn().Query(sql)
+			for dbresult.Next() {
+				var roleid int
+				var sellerid int
+				var rolename string
+				var roledata string
+				dbresult.Scan(&roleid, &sellerid, &rolename, &roledata)
+				if sellerid == -1 && rolename == "超级管理员" {
+					continue
+				}
+				jnewdata := make(map[string]interface{})
+				json.Unmarshal([]byte(AuthDataStr), &jnewdata)
+				clean_auth(jnewdata)
+				jrdata := make(map[string]interface{})
+				json.Unmarshal([]byte(roledata), &jrdata)
+				for k, v := range jrdata {
+					set_auth(k, jnewdata, v.(map[string]interface{}))
+				}
+				newauthbyte, _ := json.Marshal(&jnewdata)
+				sql = "update admin_role set RoleData = ? where id = ?"
+				db.QueryNoResult(sql, string(newauthbyte), roleid)
+			}
+			dbresult.Close()
+			sql = "update admin_role set RoleData = ? where RoleName = '超级管理员'"
+			db.QueryNoResult(sql, AuthDataStr)
+		}
+	}
+	{
+		http.PostNoAuth("/admin/user/login", user_login)
+		http.Post("/admin/login_log", login_log)
+		http.Post("/admin/role/list", role_list)
+		http.Post("/admin/role/listall", role_listall)
+		http.Post("/admin/role/roledata", role_data)
+		http.Post("/admin/role/modify", role_modify)
+		http.Post("/admin/role/add", role_add)
+		http.Post("/admin/role/delete", role_delete)
+		http.Post("/admin/opt_log", opt_log)
+		http.Post("/admin/user/list", user_list)
+		http.Post("/admin/user/modify", user_modify)
+		http.Post("/admin/user/delete", user_delete)
+		http.Post("/admin/user/add", user_add)
+		http.Post("/admin/user/google", user_google)
+		http.Post("admin/seller/name", seller_name)
+		http.Post("admin/seller/list", seller_list)
+		http.Post("admin/seller/add", seller_add)
+		http.Post("admin/seller/delete", seller_delete)
+		http.Post("admin/seller/modify", seller_modify)
+	}
+}
 func seller_list(ctx *abugo.AbuHttpContent) {
 	defer recover()
 	errcode := 0
@@ -177,89 +256,7 @@ func seller_delete(ctx *abugo.AbuHttpContent) {
 	ctx.RespOK()
 }
 
-func Init() {
-	abugo.Init()
-	debug = viper.GetBool("server.debug")
-	systemname = viper.GetString("server.systemname")
-	modulename = viper.GetString("server.modulename")
-	dbprefix = viper.GetString("server.dbprefix")
-	http = new(abugo.AbuHttp)
-	http.Init("server.http.http.port")
-	redis = new(abugo.AbuRedis)
-	redis.Init("server.redis")
-	db = new(abugo.AbuDb)
-	db.Init("server.db")
-	SetupDatabase()
-	{
-		sql := fmt.Sprintf("select SellerId from %sseller",dbprefix)
-		dbresult , _ := db.Conn().Query(sql)
-		for dbresult.Next() {
-			var sellerid int
-			dbresult.Scan(&sellerid)
-			sql = "insert ignore into admin_role(RoleName,SellerId,Parent,RoleData)values(?,?,?,?)"
-			db.QueryNoResult(sql,"运营商超管",sellerid,"god",SellerAuthDataStr)
-		}
-		dbresult.Close()
-	}
-	{
-		sql := "update admin_role set RoleData = ? where RoleName = ?"
-		db.QueryNoResult(sql,SellerAuthDataStr,"运营商超管")
-	}
-	{
-		sql := "select RoleData from admin_role where SellerId = -1 and RoleName = '超级管理员'"
-		var dbauthdata string
-		db.QueryScan(sql, []interface{}{}, &dbauthdata)
-		if dbauthdata != AuthDataStr {
-			sql = "select Id,SellerId,RoleName,RoleData from admin_role"
-			dbresult, _ := db.Conn().Query(sql)
-			for dbresult.Next() {
-				var roleid int
-				var sellerid int
-				var rolename string
-				var roledata string
-				dbresult.Scan(&roleid, &sellerid, &rolename, &roledata)
-				if sellerid == -1 && rolename == "超级管理员" {
-					continue
-				}
-				jnewdata := make(map[string]interface{})
-				json.Unmarshal([]byte(AuthDataStr), &jnewdata)
-				clean_auth(jnewdata)
-				jrdata := make(map[string]interface{})
-				json.Unmarshal([]byte(roledata), &jrdata)
-				for k, v := range jrdata {
-					set_auth(k, jnewdata, v.(map[string]interface{}))
-				}
-				newauthbyte, _ := json.Marshal(&jnewdata)
-				sql = "update admin_role set RoleData = ? where id = ?"
-				db.QueryNoResult(sql, string(newauthbyte), roleid)
-			}
-			dbresult.Close()
-			sql = "update admin_role set RoleData = ? where RoleName = '超级管理员'"
-			db.QueryNoResult(sql, AuthDataStr)
-		}
-	}
-	{
-		http.PostNoAuth("/admin/user/login", user_login)
-		http.Post("/admin/login_log", login_log)
-		http.Post("/admin/role/list", role_list)
-		http.Post("/admin/role/listall", role_listall)
-		http.Post("/admin/role/roledata", role_data)
-		http.Post("/admin/role/modify", role_modify)
-		http.Post("/admin/role/add", role_add)
-		http.Post("/admin/role/delete", role_delete)
-		http.Post("/admin/opt_log", opt_log)
-		http.Post("/admin/user/list", user_list)
-		http.Post("/admin/user/modify", user_modify)
-		http.Post("/admin/user/delete", user_delete)
-		http.Post("/admin/user/add", user_add)
-		http.Post("/admin/user/google", user_google)
-		http.Post("seller/name", seller_name)
-		http.Post("seller/list", seller_list)
-		http.Post("seller/add", seller_add)
-		http.Post("seller/delete", seller_delete)
-		http.Post("seller/modify", seller_modify)
-	}
-}
+
 func clean_auth(node map[string]interface{}) {
 	for k, v := range node {
 		if strings.Index(reflect.TypeOf(v).Name(), "float") >= 0 {

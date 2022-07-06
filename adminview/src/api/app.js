@@ -156,7 +156,7 @@ app.login = function (account, password, verifycode, callback) {
 		sessionStorage.setItem('token', result.data.Token)
 		app.setCurrentSeller(result.data.SellerId)
 		if (result.data.SellerId == -1) {
-			app.post('/seller/name', {}, (result) => {
+			app.post('/admin/seller/name', {}, (result) => {
 				sessionStorage.setItem('seller', JSON.stringify(result.data))
 				this.seller = result.data
 				callback()
@@ -208,7 +208,7 @@ app.zong = function () {
 }
 
 app.flushSeller = function () {
-	app.post('/seller/name', {}, (result) => {
+	app.post('/admin/seller/name', {}, (result) => {
 		sessionStorage.setItem('seller', JSON.stringify(result.data))
 		this.seller = result.data
 	})

@@ -84,7 +84,6 @@ type SellerData struct {
 	ApiRiskThirdPublicKey string
 }
 
-
 func GetToken(ctx *abugo.AbuHttpContent) *TokenData {
 	td := TokenData{}
 	err := json.Unmarshal([]byte(ctx.TokenData), &td)
@@ -94,32 +93,45 @@ func GetToken(ctx *abugo.AbuHttpContent) *TokenData {
 	return &td
 }
 
-
 func GetSeller(SellerId int) *SellerData {
 	sql := "select * from x_seller where SellerId = ?"
-	dbresult,err := db.Conn().Query(sql,SellerId)
-	if err != nil{
+	dbresult, err := db.Conn().Query(sql, SellerId)
+	if err != nil {
 		return nil
 	}
 	if dbresult.Next() {
 		r := SellerData{}
-		abugo.GetDbResult(dbresult,&r)
+		abugo.GetDbResult(dbresult, &r)
 		return &r
 	}
 	return nil
 }
 
-func flush_seller(){
-	for{
+func flush_seller() {
+	for {
+		rediskey := fmt.Sprint(systemname, ":seller")
 		sql := "select * from x_seller"
-		dbresult,err := db.Conn().Query(sql)
-		if err != nil{
+		dbresult, err := db.Conn().Query(sql)
+		if err != nil {
 			return
 		}
+		keys := redis.HKeys(rediskey)
 		for dbresult.Next() {
-			r := SellerData{}
-			abugo.GetDbResult(dbresult,&r)
-			fmt.Println(r)
+			sellerdata := SellerData{}
+			abugo.GetDbResult(dbresult, &sellerdata)
+			if sellerdata.State != 1 {
+				redis.HDel(rediskey, fmt.Sprint(sellerdata.SellerId))
+			} else {
+				redis.HSet(rediskey, fmt.Sprint(sellerdata.SellerId), sellerdata)
+			}
+			for i := 0; i < len(keys); i++ {
+				if keys[i] == fmt.Sprint(sellerdata.SellerId) {
+					keys = append(keys[:i], keys[i+1:]...)
+				}
+			}
+		}
+		for i := 0; i < len(keys); i++ {
+			redis.HDel(rediskey, keys[i])
 		}
 		time.Sleep(time.Second * 5)
 	}

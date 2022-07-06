@@ -78,7 +78,7 @@ export default {
 				page: this.page,
 				pagesize: this.pagesize,
 			}
-			app.post('/seller/list', data, (result) => {
+			app.post('/admin/seller/list', data, (result) => {
 				this.table_data = result.data.data
 				this.total = result.data.total
 				for (var i = 0; i < this.table_data.length; i++) {
@@ -103,14 +103,14 @@ export default {
 		},
 		handleConfirm() {
 			if (this.dialog.type == 'modify') {
-				app.post('/seller/modify', this.dialog.data, () => {
+				app.post('/admin/seller/modify', this.dialog.data, () => {
 					this.dialog.show = false
 					app.flushSeller()
 					this.handleQuery(this.page)
 				})
 			}
 			if (this.dialog.type == 'add') {
-				app.post('/seller/add', this.dialog.data, () => {
+				app.post('/admin/seller/add', this.dialog.data, () => {
 					this.dialog.show = false
 					app.flushSeller()
 					this.handleQuery(this.page)
@@ -119,7 +119,7 @@ export default {
 		},
 		handleDelete(index) {
 			if (confirm('确定删除该运营商?')) {
-				app.post('/seller/delete', { SellerId: this.table_data[index].SellerId }, () => {
+				app.post('/admin/seller/delete', { SellerId: this.table_data[index].SellerId }, () => {
 					app.flushSeller()
 					this.handleQuery(this.page)
 				})
