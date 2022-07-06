@@ -2,6 +2,8 @@ package server
 
 import (
 	"encoding/json"
+	"fmt"
+	"time"
 	"xserver/abugo"
 
 	"github.com/spf13/viper"
@@ -11,11 +13,13 @@ var http *abugo.AbuHttp
 var redis *abugo.AbuRedis
 var db *abugo.AbuDb
 var websocket *abugo.AbuWebsocket
+var systemname string
 var debug bool = false
 
 func Init() {
 	abugo.Init()
 	debug = viper.GetBool("server.debug")
+	systemname = viper.GetString("server.systemname")
 	http = new(abugo.AbuHttp)
 	http.Init("server.http.http.port")
 	redis = new(abugo.AbuRedis)
@@ -23,6 +27,7 @@ func Init() {
 	db = new(abugo.AbuDb)
 	db.Init("server.db")
 	SetupDatabase()
+	go flush_seller()
 }
 
 func Http() *abugo.AbuHttp {
@@ -39,6 +44,10 @@ func Db() *abugo.AbuDb {
 
 func Debug() bool {
 	return debug
+}
+
+func SystemName() string{
+	return systemname
 }
 
 func Run() {
@@ -85,4 +94,20 @@ func GetSeller(SellerId int) *SellerData {
 		return &r
 	}
 	return nil
+}
+
+func flush_seller(){
+	for{
+		sql := "select * from x_seller"
+		dbresult,err := db.Conn().Query(sql)
+		if err != nil{
+			return
+		}
+		for dbresult.Next() {
+			r := SellerData{}
+			abugo.GetDbResult(dbresult,&r)
+			fmt.Println(r)
+		}
+		time.Sleep(time.Second * 5)
+	}
 }

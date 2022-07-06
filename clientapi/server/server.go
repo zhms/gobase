@@ -11,11 +11,17 @@ var http *abugo.AbuHttp
 var redis *abugo.AbuRedis
 var db *abugo.AbuDb
 var websocket *abugo.AbuWebsocket
+var systemname string
+var modulename string
+var dbprefix string
 var debug bool = false
 
 func Init() {
 	abugo.Init()
 	debug = viper.GetBool("server.debug")
+	systemname = viper.GetString("server.systemname")
+	modulename = viper.GetString("server.modulename")
+	dbprefix = viper.GetString("server.dbprefix")
 	http = new(abugo.AbuHttp)
 	http.Init("server.http.http.port")
 	redis = new(abugo.AbuRedis)
@@ -39,6 +45,18 @@ func Db() *abugo.AbuDb {
 
 func Debug() bool {
 	return debug
+}
+
+func SystemName() string {
+	return systemname
+}
+
+func ModuleName() string {
+	return modulename
+}
+
+func DbPrefix() string {
+	return dbprefix
 }
 
 func Run() {

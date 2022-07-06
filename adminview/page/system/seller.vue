@@ -14,7 +14,7 @@
 						<el-link :underline="false" type="danger" v-if="scope.row.State == 2">禁用</el-link>
 					</template>
 				</el-table-column>
-				<el-table-column align="center" prop="Remark" label="备注" width="300"></el-table-column>
+				<el-table-column align="center" prop="Remark" label="备注" width="200"></el-table-column>
 				<el-table-column align="center" prop="CreateTime" label="创建时间" width="150"></el-table-column>
 				<el-table-column label="操作">
 					<template slot-scope="scope">

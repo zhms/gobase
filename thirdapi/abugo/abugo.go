@@ -731,6 +731,25 @@ func (c *AbuRedis) HDel(k string, f string) error {
 	return nil
 }
 
+func (c *AbuRedis) HKeys(k string) []string {
+	conn := c.redispool.Get()
+	defer conn.Close()
+	keys, err := conn.Do("hkeys", k)
+	rdata := []string{}
+	if err != nil {
+		logs.Error(err.Error())
+		return rdata
+	}
+	ikeys := keys.([]interface{})
+	for i := 0; i < len(ikeys); i++ {
+		d := ikeys[i].([]byte)
+		rdata = append(rdata, string(d))
+	}
+	return rdata
+}
+
+
+
 //////////////////////////////////////////////////////////////////////////////////
 //db
 /////////////////////////////////////////////////////////////////////////////////
