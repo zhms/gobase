@@ -2,6 +2,7 @@ package controller
 
 import (
 	"encoding/json"
+	"fmt"
 	"xserver/abugo"
 	"xserver/server"
 )
@@ -45,7 +46,8 @@ func (c *UserController) register(ctx *abugo.AbuHttpContent) {
 	extra.Ip = ctx.GetIp()
 	extra.AgentId = reqdata.AgentId
 	extrabytes, _ := json.Marshal(&extra)
-	queryresult, err := dbconn.Query("call x_api_user_register(?,?,?,?,?)", reqdata.Account, reqdata.SellerId, reqdata.Password, reqdata.VerifyCode, string(extrabytes))
+	sql := fmt.Sprintf("call %sapi_user_register(?,?,?,?,?)", server.DbPrefix())
+	queryresult, err := dbconn.Query(sql, reqdata.Account, reqdata.SellerId, reqdata.Password, reqdata.VerifyCode, string(extrabytes))
 	if ctx.RespErr(err, &errcode) {
 		return
 	}
@@ -85,7 +87,8 @@ func (c *UserController) login_password(ctx *abugo.AbuHttpContent) {
 	extra.Ip = ctx.GetIp()
 	strextra, _ := json.Marshal(&extra)
 	dbconn := server.Db().Conn()
-	queryresult, err := dbconn.Query("call x_api_user_login_password(?,?,?,?)", reqdata.Account, reqdata.SellerId, reqdata.Password, string(strextra))
+	sql := fmt.Sprintf("call %sapi_user_login_password(?,?,?,?)", server.DbPrefix())
+	queryresult, err := dbconn.Query(sql, reqdata.Account, reqdata.SellerId, reqdata.Password, string(strextra))
 	if ctx.RespErr(err, &errcode) {
 		return
 	}
@@ -125,7 +128,8 @@ func (c *UserController) login_verifycode(ctx *abugo.AbuHttpContent) {
 	extra.Ip = ctx.GetIp()
 	strextra, _ := json.Marshal(&extra)
 	dbconn := server.Db().Conn()
-	queryresult, err := dbconn.Query("call x_api_user_login_verifycode(?,?,?,?,?)", reqdata.Account, reqdata.SellerId, reqdata.Password, reqdata.VerifyCode, string(strextra))
+	sql := fmt.Sprintf("call %sapi_user_login_verifycode(?,?,?,?,?)", server.DbPrefix())
+	queryresult, err := dbconn.Query(sql, reqdata.Account, reqdata.SellerId, reqdata.Password, reqdata.VerifyCode, string(strextra))
 	if ctx.RespErr(err, &errcode) {
 		return
 	}

@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"fmt"
 	"xserver/abugo"
 	"xserver/server"
 )
@@ -21,7 +22,8 @@ func (c *AssetController) Init() {
 func (c *AssetController) list(ctx *abugo.AbuHttpContent) {
 	token := server.GetToken(ctx)
 	errcode := 0
-	queryresult, err := server.Db().Conn().Query("select Symbol,AssetType,AssetAmt,FrozenAmt from x_asset where userid = ?", token.UserId)
+	sql := fmt.Sprintf("select Symbol,AssetType,AssetAmt,FrozenAmt from %sasset where userid = ?", server.DbPrefix())
+	queryresult, err := server.Db().Conn().Query(sql, token.UserId)
 	if ctx.RespErr(err, &errcode) {
 		return
 	}

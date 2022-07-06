@@ -191,7 +191,7 @@ func Init() {
 	db.Init("server.db")
 	SetupDatabase()
 	{
-		sql := "select SellerId from x_seller"
+		sql := fmt.Sprintf("select SellerId from %sseller",dbprefix)
 		dbresult , _ := db.Conn().Query(sql)
 		for dbresult.Next() {
 			var sellerid int
