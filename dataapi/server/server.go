@@ -31,7 +31,6 @@ func Init() {
 	redis.Init("server.redis")
 	db = new(abugo.AbuDb)
 	db.Init("server.db")
-	SetupDatabase()
 	go flush_seller()
 }
 

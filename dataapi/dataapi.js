@@ -23,7 +23,7 @@ walkSync('./', function (filePath, stat) {
 		filelist.push(data)
 	}
 })
-let child = spawn('go', ['run', 'thirdapi.go'])
+let child = spawn('go', ['run', 'dataapi.go'])
 child.stdout.setEncoding('utf8')
 child.stderr.setEncoding('utf8')
 child.stderr.on('data', function (data) {
@@ -35,9 +35,9 @@ child.stdout.on('data', function (data) {
 setInterval(() => {
 	for (let i = 0; i < filelist.length; i++) {
 		if (filelist[i].ctimeMs != fs.statSync(filelist[i].path).ctimeMs) {
-			fs.appendFileSync('thirdapi.js', ' ')
+			fs.appendFileSync('dataapi.js', ' ')
 			break
 		}
 	}
 }, 200)
-                                                                                                                                                                                                           
+    
