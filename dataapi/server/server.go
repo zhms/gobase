@@ -1,7 +1,6 @@
 package server
 
 import (
-	"encoding/json"
 	"fmt"
 	"time"
 	"xserver/abugo"
@@ -66,44 +65,18 @@ func Run() {
 	abugo.Run()
 }
 
-type TokenData struct {
-	UserId   int
-	SellerId int
-}
-
-type SellerData struct {
-	SellerId              int
-	SellerName            string
-	State                 int
-	ApiPublicKey          string
-	ApiPrivateKey         string
-	ApiThirdPublicKey     string
-	ApiRiskPublicKey      string
-	ApiRiskPrivateKey     string
-	ApiThirdRiskPublicKey string
-}
-
-func GetToken(ctx *abugo.AbuHttpContent) *TokenData {
-	td := TokenData{}
-	err := json.Unmarshal([]byte(ctx.TokenData), &td)
-	if err != nil {
-		return nil
-	}
-	return &td
-}
-
-func GetSeller(SellerId int) *SellerData {
-	rediskey := fmt.Sprint(systemname, ":seller")
-	bytedata := redis.HGet(rediskey, fmt.Sprint(SellerId))
-	if bytedata == nil {
-		return nil
-	}
-	sellerdata := SellerData{}
-	json.Unmarshal(bytedata.([]byte), &sellerdata)
-	return &sellerdata
-}
-
 func flush_seller() {
+	type SellerData struct {
+		SellerId              int
+		SellerName            string
+		State                 int
+		ApiPublicKey          string
+		ApiPrivateKey         string
+		ApiThirdPublicKey     string
+		ApiRiskPublicKey      string
+		ApiRiskPrivateKey     string
+		ApiThirdRiskPublicKey string
+	}
 	for {
 		rediskey := fmt.Sprint(systemname, ":seller")
 		sql := "select * from x_seller"

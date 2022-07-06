@@ -151,7 +151,6 @@ func GetUuid() string {
 	return id.String()
 }
 func Run() {
-	logs.Debug("*********start*********")
 	for i := range abuwsmsgqueue {
 		if i.MsgData == nil {
 			i.Ws.dispatch(i.MsgType, i.Id, abumsgdata{}, i.callback)
