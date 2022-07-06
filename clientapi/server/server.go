@@ -2,6 +2,8 @@ package server
 
 import (
 	"encoding/json"
+	"fmt"
+	"time"
 	"xserver/abugo"
 
 	"github.com/spf13/viper"
@@ -29,6 +31,7 @@ func Init() {
 	db = new(abugo.AbuDb)
 	db.Init("server.db")
 	SetupDatabase()
+	go flush_seller()
 }
 
 func Http() *abugo.AbuHttp {
@@ -75,4 +78,57 @@ func GetToken(ctx *abugo.AbuHttpContent) *TokenData {
 		return nil
 	}
 	return &td
+}
+
+type SellerData struct {
+	SellerId              int
+	SellerName            string
+	State                 int
+	ApiPublicKey          string
+	ApiPrivateKey         string
+	ApiThirdPublicKey     string
+	ApiRiskPublicKey      string
+	ApiRiskPrivateKey     string
+	ApiRiskThirdPublicKey string
+}
+
+func GetSeller(SellerId int) *SellerData {
+	rediskey := fmt.Sprint(systemname, ":seller")
+	bytedata := redis.HGet(rediskey, fmt.Sprint(SellerId))
+	if bytedata == nil {
+		return nil
+	}
+	sellerdata := SellerData{}
+	json.Unmarshal(bytedata.([]byte), &sellerdata)
+	return &sellerdata
+}
+
+func flush_seller() {
+	for {
+		rediskey := fmt.Sprint(systemname, ":seller")
+		sql := "select * from x_seller"
+		dbresult, err := db.Conn().Query(sql)
+		if err != nil {
+			return
+		}
+		keys := redis.HKeys(rediskey)
+		for dbresult.Next() {
+			sellerdata := SellerData{}
+			abugo.GetDbResult(dbresult, &sellerdata)
+			if sellerdata.State != 1 {
+				redis.HDel(rediskey, fmt.Sprint(sellerdata.SellerId))
+			} else {
+				redis.HSet(rediskey, fmt.Sprint(sellerdata.SellerId), sellerdata)
+			}
+			for i := 0; i < len(keys); i++ {
+				if keys[i] == fmt.Sprint(sellerdata.SellerId) {
+					keys = append(keys[:i], keys[i+1:]...)
+				}
+			}
+		}
+		for i := 0; i < len(keys); i++ {
+			redis.HDel(rediskey, keys[i])
+		}
+		time.Sleep(time.Second * 10)
+	}
 }

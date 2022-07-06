@@ -94,17 +94,14 @@ func GetToken(ctx *abugo.AbuHttpContent) *TokenData {
 }
 
 func GetSeller(SellerId int) *SellerData {
-	sql := "select * from x_seller where SellerId = ?"
-	dbresult, err := db.Conn().Query(sql, SellerId)
-	if err != nil {
+	rediskey := fmt.Sprint(systemname, ":seller")
+	bytedata := redis.HGet(rediskey, fmt.Sprint(SellerId))
+	if bytedata == nil {
 		return nil
 	}
-	if dbresult.Next() {
-		r := SellerData{}
-		abugo.GetDbResult(dbresult, &r)
-		return &r
-	}
-	return nil
+	sellerdata := SellerData{}
+	json.Unmarshal(bytedata.([]byte), &sellerdata)
+	return &sellerdata
 }
 
 func flush_seller() {
@@ -133,6 +130,6 @@ func flush_seller() {
 		for i := 0; i < len(keys); i++ {
 			redis.HDel(rediskey, keys[i])
 		}
-		time.Sleep(time.Second * 5)
+		time.Sleep(time.Second * 10)
 	}
 }
