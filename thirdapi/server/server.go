@@ -81,7 +81,7 @@ type SellerData struct {
 	ApiThirdPublicKey     string
 	ApiRiskPublicKey      string
 	ApiRiskPrivateKey     string
-	ApiRiskThirdPublicKey string
+	ApiThirdRiskPublicKey string
 }
 
 func GetToken(ctx *abugo.AbuHttpContent) *TokenData {

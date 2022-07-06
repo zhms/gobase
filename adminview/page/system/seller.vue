@@ -18,6 +18,8 @@
 				<el-table-column align="center" prop="CreateTime" label="创建时间" width="150"></el-table-column>
 				<el-table-column label="操作">
 					<template slot-scope="scope">
+						<el-button type="text" icon="el-icon-edit" @click="handleChangeKey(scope.$index)">更换秘钥</el-button>
+						<el-button type="text" icon="el-icon-edit" @click="handleShowKey(scope.$index)">查看秘钥</el-button>
 						<el-button type="text" icon="el-icon-edit" @click="handleModify(scope.$index)">修改</el-button>
 						<el-button type="text" icon="el-icon-delete" class="red" @click="handleDelete(scope.$index)">删除</el-button>
 					</template>
@@ -45,6 +47,27 @@
 				</span>
 			</el-dialog>
 		</div>
+		<div>
+			<el-dialog title="秘钥" :visible.sync="dlgkey" width="800px" center>
+				<el-form :model="filters" width="800px">
+					<el-form-item label="服务器业务公钥:">
+						<el-input type="textarea" v-model="keydata.ApiPublicKey" style="width: 600px" :disabled="true" :rows="10"></el-input>
+					</el-form-item>
+					<!-- <el-form-item label="服务器风控公钥:">
+						<el-input type="textarea" v-model="keydata.ApiRiskPublicKey" style="width: 600px" :disabled="true" :rows="10"></el-input>
+					</el-form-item> -->
+					<el-form-item label="第三方业务公钥:">
+						<el-input type="textarea" v-model="keydata.ApiThirdPublicKey" style="width: 600px" :rows="10"></el-input>
+					</el-form-item>
+					<!-- <el-form-item label="第三方风控公钥:">
+						<el-input type="textarea" v-model="keydata.ApiThirdRiskPublicKey" style="width: 600px" :rows="10"></el-input>
+					</el-form-item> -->
+				</el-form>
+				<span slot="footer" class="dialog-footer">
+					<el-button type="primary" @click="handleSetKey">确 定</el-button>
+				</span>
+			</el-dialog>
+		</div>
 	</div>
 </template>
 <script>
@@ -62,6 +85,9 @@ export default {
 					Remark: null,
 				},
 			},
+			dlgkey: false,
+			textarea: '',
+			keydata: {},
 		}
 	},
 	created() {
@@ -70,6 +96,16 @@ export default {
 	methods: {
 		auth2(o) {
 			return app.auth2('系统管理', '运营商管理', o)
+		},
+		handleSetKey() {
+			let data = {
+				SellerId: this.table_data[this.current_row].SellerId,
+				ApiThirdPublicKey: this.keydata.ApiThirdPublicKey,
+				ApiThirdRiskPublicKey: this.keydata.ApiThirdRiskPublicKey,
+			}
+			app.post('/admin/seller/set_key', data, (result) => {
+				this.dlgkey = false
+			})
 		},
 		handleQuery(page) {
 			this.page = page || 1
@@ -124,6 +160,21 @@ export default {
 					this.handleQuery(this.page)
 				})
 			}
+		},
+		handleChangeKey(index) {
+			if (confirm('确定更换秘钥?')) {
+				app.post('/admin/seller/change_key', { SellerId: this.table_data[index].SellerId }, () => {
+					this.$message.success('操作成功')
+				})
+			}
+		},
+		handleShowKey(index) {
+			this.current_row = index
+			app.post('/admin/seller/get_key', { SellerId: this.table_data[index].SellerId }, (data) => {
+				this.keydata = data.data.data
+				this.dlgkey = true
+				console.log(this.keydata)
+			})
 		},
 	},
 }

@@ -21,13 +21,6 @@ var systemname string
 var modulename string
 var dbprefix string
 
-type SellerData struct {
-	SellerId   int
-	SellerName string
-	State      int
-	Remark     string
-	CreateTime string
-}
 func SystemName() string {
 	return systemname
 }
@@ -37,6 +30,7 @@ func ModuleName() string {
 func DbPrefix() string {
 	return dbprefix
 }
+
 func Init() {
 	abugo.Init()
 	debug = viper.GetBool("server.debug")
@@ -51,19 +45,19 @@ func Init() {
 	db.Init("server.db")
 	SetupDatabase()
 	{
-		sql := fmt.Sprintf("select SellerId from %sseller",dbprefix)
-		dbresult , _ := db.Conn().Query(sql)
+		sql := fmt.Sprintf("select SellerId from %sseller", dbprefix)
+		dbresult, _ := db.Conn().Query(sql)
 		for dbresult.Next() {
 			var sellerid int
 			dbresult.Scan(&sellerid)
 			sql = "insert ignore into admin_role(RoleName,SellerId,Parent,RoleData)values(?,?,?,?)"
-			db.QueryNoResult(sql,"运营商超管",sellerid,"god",SellerAuthDataStr)
+			db.QueryNoResult(sql, "运营商超管", sellerid, "god", SellerAuthDataStr)
 		}
 		dbresult.Close()
 	}
 	{
 		sql := "update admin_role set RoleData = ? where RoleName = ?"
-		db.QueryNoResult(sql,SellerAuthDataStr,"运营商超管")
+		db.QueryNoResult(sql, SellerAuthDataStr, "运营商超管")
 	}
 	{
 		sql := "select RoleData from admin_role where SellerId = -1 and RoleName = '超级管理员'"
@@ -118,6 +112,9 @@ func Init() {
 		http.Post("admin/seller/add", seller_add)
 		http.Post("admin/seller/delete", seller_delete)
 		http.Post("admin/seller/modify", seller_modify)
+		http.Post("admin/seller/change_key", seller_change_key)
+		http.Post("admin/seller/get_key", seller_get_key)
+		http.Post("admin/seller/set_key", seller_set_key)
 	}
 }
 func seller_list(ctx *abugo.AbuHttpContent) {
@@ -162,9 +159,16 @@ func seller_list(ctx *abugo.AbuHttpContent) {
 	if ctx.RespErr(err, &errcode) {
 		return
 	}
-	data := []SellerData{}
+	type ReturnData struct {
+		SellerId   int
+		SellerName string
+		State      int
+		Remark     string
+		CreateTime string
+	}
+	data := []ReturnData{}
 	for dbresult.Next() {
-		data_element := SellerData{}
+		data_element := ReturnData{}
 		abugo.GetDbResult(dbresult, &data_element)
 		data_element.CreateTime = abugo.TimeToUtc(data_element.CreateTime)
 		data = append(data, data_element)
@@ -251,11 +255,97 @@ func seller_delete(ctx *abugo.AbuHttpContent) {
 	sql := fmt.Sprintf("delete from  %s where SellerId = ?", db_seller_tablename)
 	db.QueryNoResult(sql, reqdata.SellerId)
 	sql = "delete from admin_role where SellerId = ?"
-	db.QueryNoResult(sql,reqdata.SellerId)
+	db.QueryNoResult(sql, reqdata.SellerId)
 	WriteAdminLog("删除运营商", ctx, reqdata)
 	ctx.RespOK()
 }
 
+func seller_change_key(ctx *abugo.AbuHttpContent) {
+	defer recover()
+	type RequestData struct {
+		SellerId int `validate:"required"`
+	}
+	errcode := 0
+	reqdata := RequestData{}
+	err := ctx.RequestData(&reqdata)
+	if ctx.RespErr(err, &errcode) {
+		return
+	}
+	token := GetToken(ctx)
+	if ctx.RespErrString(token.SellerId != -1, &errcode, "权限不足") {
+		return
+	}
+	if ctx.RespErrString(!Auth2(token, "系统管理", "运营商管理", "改"), &errcode, "权限不足") {
+		return
+	}
+	apirsakey := abugo.NewRsaKey()
+	sql := fmt.Sprintf("update %sseller set ApiPublicKey = ?,ApiPrivateKey = ? where SellerId = ?", dbprefix)
+	db.QueryNoResult(sql, apirsakey.Public, apirsakey.Private, reqdata.SellerId)
+
+	apirsariskkey := abugo.NewRsaKey()
+	sql = fmt.Sprintf("update %sseller set ApiRiskPublicKey = ?,ApiRiskPrivateKey = ? where SellerId = ?", dbprefix)
+	db.QueryNoResult(sql, apirsariskkey.Public, apirsariskkey.Private, reqdata.SellerId)
+	ctx.RespOK()
+}
+
+func seller_get_key(ctx *abugo.AbuHttpContent) {
+	defer recover()
+	type RequestData struct {
+		SellerId int `validate:"required"`
+	}
+	errcode := 0
+	reqdata := RequestData{}
+	err := ctx.RequestData(&reqdata)
+	if ctx.RespErr(err, &errcode) {
+		return
+	}
+	token := GetToken(ctx)
+	if ctx.RespErrString(token.SellerId != -1, &errcode, "权限不足") {
+		return
+	}
+	if ctx.RespErrString(!Auth2(token, "系统管理", "运营商管理", "查"), &errcode, "权限不足") {
+		return
+	}
+	type ReturnData struct {
+		ApiPublicKey          string
+		ApiThirdPublicKey     string
+		ApiRiskPublicKey      string
+		ApiThirdRiskPublicKey string
+	}
+	sql := fmt.Sprintf("select ApiPublicKey,ApiThirdPublicKey,ApiRiskPublicKey,ApiThirdRiskPublicKey from %sseller where sellerid = ?", dbprefix)
+	dbresult, _ := db.Conn().Query(sql, reqdata.SellerId)
+	if dbresult.Next() {
+		data := ReturnData{}
+		abugo.GetDbResult(dbresult, &data)
+		ctx.Put("data", data)
+	}
+	ctx.RespOK()
+}
+
+func seller_set_key(ctx *abugo.AbuHttpContent) {
+	defer recover()
+	type RequestData struct {
+		SellerId              int    `validate:"required"`
+		ApiThirdPublicKey     string `validate:"required"`
+		ApiThirdRiskPublicKey string `validate:"required"`
+	}
+	errcode := 0
+	reqdata := RequestData{}
+	err := ctx.RequestData(&reqdata)
+	if ctx.RespErr(err, &errcode) {
+		return
+	}
+	token := GetToken(ctx)
+	if ctx.RespErrString(token.SellerId != -1, &errcode, "权限不足") {
+		return
+	}
+	if ctx.RespErrString(!Auth2(token, "系统管理", "运营商管理", "查"), &errcode, "权限不足") {
+		return
+	}
+	sql := fmt.Sprintf("update %sseller set ApiThirdPublicKey = ?,ApiThirdRiskPublicKey = ? where sellerid = ?", dbprefix)
+	db.QueryNoResult(sql, reqdata.ApiThirdPublicKey, reqdata.ApiThirdRiskPublicKey, reqdata.SellerId)
+	ctx.RespOK()
+}
 
 func clean_auth(node map[string]interface{}) {
 	for k, v := range node {
@@ -613,11 +703,11 @@ func role_list(ctx *abugo.AbuHttpContent) {
 		return
 	}
 	type ReturnData struct {
-		Id             int
-		RoleName       string
-		SellerId       int
-		Parent         string
-		RoleData       string
+		Id       int
+		RoleName string
+		SellerId int
+		Parent   string
+		RoleData string
 	}
 	data := []ReturnData{}
 	for dbresult.Next() {
@@ -793,10 +883,10 @@ func role_modify(ctx *abugo.AbuHttpContent) {
 func role_add(ctx *abugo.AbuHttpContent) {
 	defer recover()
 	type RequestData struct {
-		Parent         string `validate:"required"`
-		SellerId       int    `validate:"required"`
-		RoleName       string `validate:"required"`
-		RoleData       string `validate:"required"`
+		Parent   string `validate:"required"`
+		SellerId int    `validate:"required"`
+		RoleName string `validate:"required"`
+		RoleData string `validate:"required"`
 	}
 	errcode := 0
 	reqdata := RequestData{}
@@ -1013,16 +1103,16 @@ func user_list(ctx *abugo.AbuHttpContent) {
 		return
 	}
 	type ReturnData struct {
-		Id           int
-		Account      string
-		SellerId     int
-		RoleName     string
-		Remark       string
-		State        int
-		LoginCount   int
-		LoginIp      string
-		LoginTime    string
-		CreateTime   string
+		Id         int
+		Account    string
+		SellerId   int
+		RoleName   string
+		Remark     string
+		State      int
+		LoginCount int
+		LoginIp    string
+		LoginTime  string
+		CreateTime string
 	}
 	data := []ReturnData{}
 	for dbresult.Next() {
@@ -1042,12 +1132,12 @@ func user_list(ctx *abugo.AbuHttpContent) {
 func user_modify(ctx *abugo.AbuHttpContent) {
 	defer recover()
 	type RequestData struct {
-		Account      string `validate:"required"`
-		SellerId     int    `validate:"required"`
-		Password     string
-		RoleName     string `validate:"required"`
-		State        int    `validate:"required"`
-		Remark       string
+		Account  string `validate:"required"`
+		SellerId int    `validate:"required"`
+		Password string
+		RoleName string `validate:"required"`
+		State    int    `validate:"required"`
+		Remark   string
 	}
 	errcode := 0
 	reqdata := RequestData{}
@@ -1114,12 +1204,12 @@ func user_delete(ctx *abugo.AbuHttpContent) {
 func user_add(ctx *abugo.AbuHttpContent) {
 	defer recover()
 	type RequestData struct {
-		Account      string `validate:"required"`
-		SellerId     int    `validate:"required"`
-		Password     string `validate:"required"`
-		RoleName     string `validate:"required"`
-		State        int    `validate:"required"`
-		Remark       string
+		Account  string `validate:"required"`
+		SellerId int    `validate:"required"`
+		Password string `validate:"required"`
+		RoleName string `validate:"required"`
+		State    int    `validate:"required"`
+		Remark   string
 	}
 	errcode := 0
 	reqdata := RequestData{}

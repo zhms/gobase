@@ -89,7 +89,7 @@ type SellerData struct {
 	ApiThirdPublicKey     string
 	ApiRiskPublicKey      string
 	ApiRiskPrivateKey     string
-	ApiRiskThirdPublicKey string
+	ApiThirdRiskPublicKey string
 }
 
 func GetSeller(SellerId int) *SellerData {
