@@ -441,7 +441,7 @@ func (c *AbuHttp) Init(cfgkey string) {
 	c.gin.Use(abuhttpcors())
 	tokenhost := viper.GetString("server.token.host")
 	if len(tokenhost) > 0 {
-		c.tokenrefix = get_config_string("server.token.prefix", "")
+		c.tokenrefix = fmt.Sprint(get_config_string("server.systemname", ""), ":", get_config_string("server.modulename", ""), ":token")
 		c.token = new(AbuRedis)
 		c.tokenlifetime = get_config_int("server.token.lifetime", 0)
 		c.token.Init("server.token")
@@ -730,25 +730,6 @@ func (c *AbuRedis) HDel(k string, f string) error {
 	}
 	return nil
 }
-
-func (c *AbuRedis) HKeys(k string) []string {
-	conn := c.redispool.Get()
-	defer conn.Close()
-	keys, err := conn.Do("hkeys", k)
-	rdata := []string{}
-	if err != nil {
-		logs.Error(err.Error())
-		return rdata
-	}
-	ikeys := keys.([]interface{})
-	for i := 0; i < len(ikeys); i++ {
-		d := ikeys[i].([]byte)
-		rdata = append(rdata, string(d))
-	}
-	return rdata
-}
-
-
 
 //////////////////////////////////////////////////////////////////////////////////
 //db

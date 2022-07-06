@@ -441,7 +441,7 @@ func (c *AbuHttp) Init(cfgkey string) {
 	c.gin.Use(abuhttpcors())
 	tokenhost := viper.GetString("server.token.host")
 	if len(tokenhost) > 0 {
-		c.tokenrefix = get_config_string("server.token.prefix", "")
+		c.tokenrefix = fmt.Sprint(get_config_string("server.systemname", ""), ":", get_config_string("server.modulename", ""), ":token")
 		c.token = new(AbuRedis)
 		c.tokenlifetime = get_config_int("server.token.lifetime", 0)
 		c.token.Init("server.token")
@@ -731,17 +731,6 @@ func (c *AbuRedis) HDel(k string, f string) error {
 	return nil
 }
 
-func (c *AbuRedis) SAdd(k string, f string) error {
-	conn := c.redispool.Get()
-	defer conn.Close()
-	_, err := conn.Do("sadd", k, f)
-	if err != nil {
-		logs.Error(err.Error())
-		return nil
-	}
-	return nil
-}
-
 //////////////////////////////////////////////////////////////////////////////////
 //db
 /////////////////////////////////////////////////////////////////////////////////
@@ -1007,7 +996,6 @@ func RsaSign(data interface{}, privatekey string) string {
 	v := reflect.ValueOf(data)
 	keys := []string{}
 	for i := 0; i < t.NumField(); i++ {
-		fmt.Println(t.Field(i).Tag)
 		fn := strings.ToLower(t.Field(i).Name)
 		if fn != "sign" {
 			keys = append(keys, t.Field(i).Name)
@@ -1036,9 +1024,6 @@ func RsaSign(data interface{}, privatekey string) string {
 		case float64:
 			sb.WriteString(fmt.Sprint(sv))
 		}
-		if i < len(keys)-1 {
-			sb.WriteString("&")
-		}
 	}
 	privatekeybase64, errb := base64.StdEncoding.DecodeString(privatekey)
 	if errb != nil {
@@ -1051,31 +1036,6 @@ func RsaSign(data interface{}, privatekey string) string {
 		return ""
 	}
 	hashmd5 := md5.Sum([]byte(sb.String()))
-	hashed := hashmd5[:]
-	sign, errd := rsa.SignPKCS1v15(crand.Reader, privatekeyx509.(*rsa.PrivateKey), crypto.MD5, hashed)
-	if errd != nil {
-		logs.Error(errd)
-		return ""
-	}
-	return base64.StdEncoding.EncodeToString(sign)
-}
-
-func RsaSignStr(data string, privatekey string) string {
-	privatekey = strings.Replace(privatekey, "-----BEGIN PRIVATE KEY-----", "", -1)
-	privatekey = strings.Replace(privatekey, "-----END PRIVATE KEY-----", "", -1)
-	privatekey = strings.Replace(privatekey, "-----BEGIN RSA PRIVATE KEY-----", "", -1)
-	privatekey = strings.Replace(privatekey, "-----END RSA PRIVATE KEY-----", "", -1)
-	privatekeybase64, errb := base64.StdEncoding.DecodeString(privatekey)
-	if errb != nil {
-		logs.Error(errb)
-		return ""
-	}
-	privatekeyx509, errc := x509.ParsePKCS8PrivateKey([]byte(privatekeybase64))
-	if errc != nil {
-		logs.Error(errc)
-		return ""
-	}
-	hashmd5 := md5.Sum([]byte(data))
 	hashed := hashmd5[:]
 	sign, errd := rsa.SignPKCS1v15(crand.Reader, privatekeyx509.(*rsa.PrivateKey), crypto.MD5, hashed)
 	if errd != nil {
@@ -1136,28 +1096,6 @@ func RsaVerify(data interface{}, publickey string) bool {
 	}
 	hash := md5.New()
 	hash.Write([]byte(sb.String()))
-	signdata, _ := base64.StdEncoding.DecodeString(signedstr)
-	errd := rsa.VerifyPKCS1v15(publickeyx509.(*rsa.PublicKey), crypto.MD5, hash.Sum(nil), signdata)
-	return errd == nil
-}
-
-func RsaVerifyStr(data string, signedstr string, publickey string) bool {
-	publickey = strings.Replace(publickey, "-----BEGIN PUBLIC KEY-----", "", -1)
-	publickey = strings.Replace(publickey, "-----END PUBLIC KEY-----", "", -1)
-	publickey = strings.Replace(publickey, "-----BEGIN RSA PUBLIC KEY-----", "", -1)
-	publickey = strings.Replace(publickey, "-----END RSA PUBLIC KEY-----", "", -1)
-	publickeybase64, errb := base64.StdEncoding.DecodeString(publickey)
-	if errb != nil {
-		logs.Error(errb)
-		return false
-	}
-	publickeyx509, errc := x509.ParsePKIXPublicKey([]byte(publickeybase64))
-	if errc != nil {
-		logs.Error(errc)
-		return false
-	}
-	hash := md5.New()
-	hash.Write([]byte(data))
 	signdata, _ := base64.StdEncoding.DecodeString(signedstr)
 	errd := rsa.VerifyPKCS1v15(publickeyx509.(*rsa.PublicKey), crypto.MD5, hash.Sum(nil), signdata)
 	return errd == nil

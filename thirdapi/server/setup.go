@@ -5,17 +5,16 @@ import (
 	"strings"
 )
 
-var DbPrefix = "x_"
-var db_asset_tablename = fmt.Sprintf("%sasset", DbPrefix)
-var db_config_tablename = fmt.Sprintf("%sconfig", DbPrefix)
-var db_error_tablename = fmt.Sprintf("%serror", DbPrefix)
-var db_seller_tablename = fmt.Sprintf("%sseller", DbPrefix)
-var db_user_tablename = fmt.Sprintf("%suser", DbPrefix)
-var db_verify_tablename = fmt.Sprintf("%sverify", DbPrefix)
-var db_transfer_in_tablename = fmt.Sprintf("%stransfer_in", DbPrefix)
-var db_transfer_out_tablename = fmt.Sprintf("%stransfer_out", DbPrefix)
-var db_asset_change_reason_tablename = fmt.Sprintf("%sasset_change_reason", DbPrefix)
-var db_asset_log_tablename = fmt.Sprintf("%sasset_log", DbPrefix)
+var db_asset_tablename string
+var db_config_tablename string
+var db_error_tablename string
+var db_seller_tablename string
+var db_user_tablename string
+var db_verify_tablename string
+var db_transfer_in_tablename string
+var db_transfer_out_tablename string
+var db_asset_change_reason_tablename string
+var db_asset_log_tablename string
 var replace_symbol = "2416796325297210"
 
 func replace_sql(sql string) string {
@@ -30,11 +29,22 @@ func replace_sql(sql string) string {
 	sql = strings.Replace(sql, "ex_transfer_out", db_transfer_out_tablename, -1)
 	sql = strings.Replace(sql, "ex_asset_change_reason", db_asset_change_reason_tablename, -1)
 	sql = strings.Replace(sql, "ex_asset_log", db_asset_log_tablename, -1)
-	sql = strings.Replace(sql, "ex_", DbPrefix, -1)
+	sql = strings.Replace(sql, "ex_", DbPrefix(), -1)
 	return sql
 }
 
 func SetupDatabase() {
+	db_asset_tablename = fmt.Sprintf("%sasset", DbPrefix())
+	db_config_tablename = fmt.Sprintf("%sconfig", DbPrefix())
+	db_error_tablename = fmt.Sprintf("%serror", DbPrefix())
+	db_seller_tablename = fmt.Sprintf("%sseller", DbPrefix())
+	db_user_tablename = fmt.Sprintf("%suser", DbPrefix())
+	db_verify_tablename = fmt.Sprintf("%sverify", DbPrefix())
+	db_transfer_in_tablename = fmt.Sprintf("%stransfer_in", DbPrefix())
+	db_transfer_out_tablename = fmt.Sprintf("%stransfer_out", DbPrefix())
+	db_asset_change_reason_tablename = fmt.Sprintf("%sasset_change_reason", DbPrefix())
+	db_asset_log_tablename = fmt.Sprintf("%sasset_log", DbPrefix())
+	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	sql := `CREATE TABLE IF NOT EXISTS ex_transfer_in  (
 		Id bigint(20) NOT NULL AUTO_INCREMENT COMMENT 'id',
 		OrderId bigint(20) NULL DEFAULT NULL COMMENT '订单id',

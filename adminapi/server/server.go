@@ -17,6 +17,9 @@ var redis *abugo.AbuRedis
 var db *abugo.AbuDb
 var websocket *abugo.AbuWebsocket
 var debug bool = false
+var systemname string
+var modulename string
+var dbprefix string
 
 type SellerData struct {
 	SellerId   int
@@ -25,23 +28,17 @@ type SellerData struct {
 	Remark     string
 	CreateTime string
 }
-type CacheSellerData struct {
-	SellerId               int
-	SellerName             string
-	State                  int
-	ApiPublicKey           string
-	ApiPrivateKey          string
-	ApiThirdPublicKey      string
-	ApiRiskPublicKey       string
-	ApiRiskPrivateKey      string
-	ApiRiskThirdPublicKey  string
-	HbcServerPublicKey     string
-	HbcLocalPublicKey      string
-	HbcLocalPrivateKey     string
-	HbcRiskServerPublicKey string
-	HbcRiskLocalPublicKey  string
-	HbcRiskLocalPrivateKey string
-	HbcAppId               string
+
+func SystemName() string {
+	return systemname
+}
+
+func ModuleName() string {
+	return modulename
+}
+
+func DbPrefix() string {
+	return dbprefix
 }
 
 func seller_list(ctx *abugo.AbuHttpContent) {
@@ -183,6 +180,9 @@ func seller_delete(ctx *abugo.AbuHttpContent) {
 func Init() {
 	abugo.Init()
 	debug = viper.GetBool("server.debug")
+	systemname = viper.GetString("server.systemname")
+	modulename = viper.GetString("server.modulename")
+	dbprefix = viper.GetString("server.dbprefix")
 	http = new(abugo.AbuHttp)
 	http.Init("server.http.http.port")
 	redis = new(abugo.AbuRedis)

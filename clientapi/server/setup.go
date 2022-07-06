@@ -44,7 +44,6 @@ func SetupDatabase() {
 	db_transfer_out_tablename = fmt.Sprintf("%stransfer_out", DbPrefix())
 	db_asset_change_reason_tablename = fmt.Sprintf("%sasset_change_reason", DbPrefix())
 	db_asset_log_tablename = fmt.Sprintf("%sasset_log", DbPrefix())
-	replace_symbol = "2416796325297210"
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	sql := `CREATE TABLE IF NOT EXISTS ex_user  (
 			Id int(11) NOT NULL AUTO_INCREMENT COMMENT 'id',
