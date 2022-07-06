@@ -46,7 +46,7 @@ func user_list(ctx *abugo.AbuHttpContent) {
 	where.AddInt("and", "UserId", reqdata.UserId, 0)
 	where.AddString("and", "Account", reqdata.Account, "")
 	var total int
-	server.Db().QueryScan(where.CountSql(fmt.Sprintf("%suser", server.DbPrefix)), where.Params, &total)
+	server.Db().QueryScan(where.CountSql(fmt.Sprintf("%suser", server.DbPrefix())), where.Params, &total)
 	if total == 0 {
 		ctx.Put("data", []interface{}{})
 		ctx.Put("page", reqdata.Page)
@@ -55,7 +55,7 @@ func user_list(ctx *abugo.AbuHttpContent) {
 		ctx.RespOK()
 		return
 	}
-	dbresult, err := server.Db().Conn().Query(where.Sql(fmt.Sprintf("%suser", server.DbPrefix), reqdata.Page, reqdata.PageSize), where.GetParams()...)
+	dbresult, err := server.Db().Conn().Query(where.Sql(fmt.Sprintf("%suser", server.DbPrefix()), reqdata.Page, reqdata.PageSize), where.GetParams()...)
 	if ctx.RespErr(err, &errcode) {
 		return
 	}

@@ -1189,7 +1189,7 @@ func seller_name(ctx *abugo.AbuHttpContent) {
 		return
 	}
 	errcode := 0
-	sql := fmt.Sprintf("select * from %sseller where State = 1", DbPrefix)
+	sql := fmt.Sprintf("select * from %sseller where State = 1", DbPrefix())
 	dbresult, err := db.Conn().Query(sql)
 	if ctx.RespErr(err, &errcode) {
 		return
