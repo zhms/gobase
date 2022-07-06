@@ -9,9 +9,9 @@ type AssetController struct {
 }
 
 func (c *AssetController) Init() {
-	gropu := server.Http().NewGroup("/asset")
+	group := server.Http().NewGroup("/asset")
 	{
-		gropu.Post("/list", c.list)
+		group.Post("/list", c.list)
 	}
 }
 
