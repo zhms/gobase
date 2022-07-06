@@ -1,9 +1,10 @@
 server:
   debug: true
+  snowflakenode: 1 #分布式id生成器节点
   systemname: x_gobase #系统名称
   modulename: clientapi #模块名称
   dbprefix: x_ #数据库前缀
-  snowflakenode: 1 #分布式id生成器节点
+  cacheserver: http://127.0.0.1:5511 #缓存节点
   http:
     http:
       port: 4534

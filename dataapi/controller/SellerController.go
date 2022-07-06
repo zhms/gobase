@@ -36,6 +36,7 @@ func seller_flush(ctx *abugo.AbuHttpContent) {
 	sql := "select * from x_seller"
 	dbresult, err := server.Db().Conn().Query(sql)
 	if err != nil {
+		logs.Error(err)
 		return
 	}
 	keys := server.Redis().HKeys(rediskey)
@@ -56,6 +57,9 @@ func seller_flush(ctx *abugo.AbuHttpContent) {
 	for i := 0; i < len(keys); i++ {
 		server.Redis().HDel(rediskey, keys[i])
 	}
+	if ctx != nil {
+		ctx.RespOK()
+	}
 	logs.Debug("刷新运营商")
 }
 
@@ -70,5 +74,11 @@ func seller_get(ctx *abugo.AbuHttpContent) {
 	if ctx.RespErr(err, &errcode) {
 		return
 	}
-	ctx.RespOK()
+	rediskey := fmt.Sprint(server.SystemName(), ":seller")
+	data := server.Redis().HGet(rediskey, fmt.Sprint(reqdata.SellerId))
+	if data != nil {
+		ctx.RespOK(string(data.([]byte)))
+		return
+	}
+	ctx.RespOK("")
 }
