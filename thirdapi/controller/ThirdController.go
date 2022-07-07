@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+	"xserver/abucache"
 	"xserver/abugo"
-	"xserver/cacheserver"
 	"xserver/server"
 )
 
@@ -39,7 +39,7 @@ func third_user_register(ctx *abugo.AbuHttpContent) {
 	if ctx.RespErr(err, &errcode) {
 		return
 	}
-	seller := cacheserver.GetSeller(reqdata.SellerId)
+	seller := abucache.GetSeller(reqdata.SellerId)
 	if ctx.RespErrString(seller == nil, &errcode, "商户不存在") {
 		return
 	}
@@ -87,7 +87,7 @@ func third_get_balance(ctx *abugo.AbuHttpContent) {
 		return
 	}
 	reqdata.Symbol = strings.ToLower(reqdata.Symbol)
-	seller := cacheserver.GetSeller(reqdata.SellerId)
+	seller := abucache.GetSeller(reqdata.SellerId)
 	if ctx.RespErrString(seller == nil, &errcode, "商户不存在") {
 		return
 	}
@@ -135,7 +135,7 @@ func third_transfer_in(ctx *abugo.AbuHttpContent) {
 		return
 	}
 	reqdata.Symbol = strings.ToLower(reqdata.Symbol)
-	seller := cacheserver.GetSeller(reqdata.SellerId)
+	seller := abucache.GetSeller(reqdata.SellerId)
 	if ctx.RespErrString(seller == nil, &errcode, "商户不存在") {
 		return
 	}
@@ -181,7 +181,7 @@ func third_transfer_order(ctx *abugo.AbuHttpContent) {
 	if ctx.RespErr(err, &errcode) {
 		return
 	}
-	seller := cacheserver.GetSeller(reqdata.SellerId)
+	seller := abucache.GetSeller(reqdata.SellerId)
 	if ctx.RespErrString(seller == nil, &errcode, "商户不存在") {
 		return
 	}
@@ -220,7 +220,7 @@ func third_transfer_out(ctx *abugo.AbuHttpContent) {
 		return
 	}
 	reqdata.Symbol = strings.ToLower(reqdata.Symbol)
-	seller := cacheserver.GetSeller(reqdata.SellerId)
+	seller := abucache.GetSeller(reqdata.SellerId)
 	if ctx.RespErrString(seller == nil, &errcode, "商户不存在") {
 		return
 	}
@@ -271,7 +271,7 @@ func third_server_login(ctx *abugo.AbuHttpContent) {
 	if ctx.RespErr(err, &errcode) {
 		return
 	}
-	seller := cacheserver.GetSeller(reqdata.SellerId)
+	seller := abucache.GetSeller(reqdata.SellerId)
 	if ctx.RespErrString(seller == nil, &errcode, "商户不存在") {
 		return
 	}

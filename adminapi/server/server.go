@@ -92,6 +92,8 @@ func Init() {
 			db.QueryNoResult(sql, AuthDataStr)
 		}
 	}
+	seller_flush()
+	systemconfig_flush()
 	{
 		http.PostNoAuth("/admin/user/login", user_login)
 		http.Post("/admin/login_log", login_log)
@@ -203,6 +205,7 @@ func seller_add(ctx *abugo.AbuHttpContent) {
 	}
 	sql := fmt.Sprintf("insert into %s(SellerName,State,Remark)values(?,?,?)", db_seller_tablename)
 	db.QueryNoResult(sql, reqdata.SellerName, reqdata.State, reqdata.Remark)
+	seller_flush()
 	WriteAdminLog("添加运营商", ctx, reqdata)
 	ctx.RespOK()
 }
@@ -230,6 +233,7 @@ func seller_modify(ctx *abugo.AbuHttpContent) {
 	}
 	sql := fmt.Sprintf("update %s set SellerName = ?,State = ?,Remark = ? where SellerId = ?", db_seller_tablename)
 	db.QueryNoResult(sql, reqdata.SellerName, reqdata.State, reqdata.Remark, reqdata.SellerId)
+	seller_flush()
 	WriteAdminLog("修改运营商", ctx, reqdata)
 	ctx.RespOK()
 }
@@ -256,6 +260,7 @@ func seller_delete(ctx *abugo.AbuHttpContent) {
 	db.QueryNoResult(sql, reqdata.SellerId)
 	sql = "delete from admin_role where SellerId = ?"
 	db.QueryNoResult(sql, reqdata.SellerId)
+	seller_flush()
 	WriteAdminLog("删除运营商", ctx, reqdata)
 	ctx.RespOK()
 }
@@ -285,7 +290,34 @@ func seller_change_key(ctx *abugo.AbuHttpContent) {
 	apirsariskkey := abugo.NewRsaKey()
 	sql = fmt.Sprintf("update %sseller set ApiRiskPublicKey = ?,ApiRiskPrivateKey = ? where SellerId = ?", dbprefix)
 	db.QueryNoResult(sql, apirsariskkey.Public, apirsariskkey.Private, reqdata.SellerId)
+	seller_flush()
 	WriteAdminLog("更换运营商秘钥", ctx, reqdata)
+	ctx.RespOK()
+}
+
+func seller_set_key(ctx *abugo.AbuHttpContent) {
+	defer recover()
+	type RequestData struct {
+		SellerId              int    `validate:"required"`
+		ApiThirdPublicKey     string `validate:"required"`
+		ApiThirdRiskPublicKey string `validate:"required"`
+	}
+	errcode := 0
+	reqdata := RequestData{}
+	err := ctx.RequestData(&reqdata)
+	if ctx.RespErr(err, &errcode) {
+		return
+	}
+	token := GetToken(ctx)
+	if ctx.RespErrString(token.SellerId != -1, &errcode, "权限不足") {
+		return
+	}
+	if ctx.RespErrString(!Auth2(token, "系统管理", "运营商管理", "查"), &errcode, "权限不足") {
+		return
+	}
+	sql := fmt.Sprintf("update %sseller set ApiThirdPublicKey = ?,ApiThirdRiskPublicKey = ? where sellerid = ?", dbprefix)
+	db.QueryNoResult(sql, reqdata.ApiThirdPublicKey, reqdata.ApiThirdRiskPublicKey, reqdata.SellerId)
+	seller_flush()
 	ctx.RespOK()
 }
 
@@ -320,31 +352,6 @@ func seller_get_key(ctx *abugo.AbuHttpContent) {
 		abugo.GetDbResult(dbresult, &data)
 		ctx.Put("data", data)
 	}
-	ctx.RespOK()
-}
-
-func seller_set_key(ctx *abugo.AbuHttpContent) {
-	defer recover()
-	type RequestData struct {
-		SellerId              int    `validate:"required"`
-		ApiThirdPublicKey     string `validate:"required"`
-		ApiThirdRiskPublicKey string `validate:"required"`
-	}
-	errcode := 0
-	reqdata := RequestData{}
-	err := ctx.RequestData(&reqdata)
-	if ctx.RespErr(err, &errcode) {
-		return
-	}
-	token := GetToken(ctx)
-	if ctx.RespErrString(token.SellerId != -1, &errcode, "权限不足") {
-		return
-	}
-	if ctx.RespErrString(!Auth2(token, "系统管理", "运营商管理", "查"), &errcode, "权限不足") {
-		return
-	}
-	sql := fmt.Sprintf("update %sseller set ApiThirdPublicKey = ?,ApiThirdRiskPublicKey = ? where sellerid = ?", dbprefix)
-	db.QueryNoResult(sql, reqdata.ApiThirdPublicKey, reqdata.ApiThirdRiskPublicKey, reqdata.SellerId)
 	ctx.RespOK()
 }
 
@@ -1298,4 +1305,65 @@ func seller_name(ctx *abugo.AbuHttpContent) {
 	}
 	dbresult.Close()
 	ctx.RespOK(data)
+}
+
+func seller_flush() {
+	type SellerData struct {
+		SellerId              int
+		SellerName            string
+		State                 int
+		ApiPublicKey          string
+		ApiPrivateKey         string
+		ApiThirdPublicKey     string
+		ApiRiskPublicKey      string
+		ApiRiskPrivateKey     string
+		ApiThirdRiskPublicKey string
+	}
+	rediskey := fmt.Sprint(systemname, ":seller")
+	sql := fmt.Sprintf("select * from %sseller", dbprefix)
+	dbresult, err := db.Conn().Query(sql)
+	if err != nil {
+		logs.Error(err)
+		return
+	}
+	keys := redis.HKeys(rediskey)
+	for dbresult.Next() {
+		sellerdata := SellerData{}
+		abugo.GetDbResult(dbresult, &sellerdata)
+		if sellerdata.State != 1 {
+			redis.HDel(rediskey, fmt.Sprint(sellerdata.SellerId))
+		} else {
+			redis.HSet(rediskey, fmt.Sprint(sellerdata.SellerId), sellerdata)
+		}
+		for i := 0; i < len(keys); i++ {
+			if keys[i] == fmt.Sprint(sellerdata.SellerId) {
+				keys = append(keys[:i], keys[i+1:]...)
+			}
+		}
+	}
+	dbresult.Close()
+	for i := 0; i < len(keys); i++ {
+		redis.HDel(rediskey, keys[i])
+	}
+}
+
+func systemconfig_flush() {
+	sql := fmt.Sprintf("select SellerId,ConfigName,ConfigValue from %sconfig", dbprefix)
+	dbresult, err := db.Conn().Query(sql)
+	if err != nil {
+		logs.Error(err)
+		return
+	}
+	type DBData struct {
+		SellerId    int
+		ConfigName  string
+		ConfigValue string
+	}
+	for dbresult.Next() {
+		dbdata := DBData{}
+		abugo.GetDbResult(dbresult, &dbdata)
+		rediskey := fmt.Sprint(systemname, ":systemconfig:", dbdata.SellerId)
+		redis.HSetString(rediskey, dbdata.ConfigName, dbdata.ConfigValue)
+	}
+	dbresult.Close()
 }
