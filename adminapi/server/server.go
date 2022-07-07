@@ -6,7 +6,6 @@ import (
 	"reflect"
 	"strings"
 	"xserver/abugo"
-	"xserver/cacheserver"
 
 	"github.com/beego/beego/logs"
 	"github.com/spf13/viper"
@@ -204,7 +203,6 @@ func seller_add(ctx *abugo.AbuHttpContent) {
 	}
 	sql := fmt.Sprintf("insert into %s(SellerName,State,Remark)values(?,?,?)", db_seller_tablename)
 	db.QueryNoResult(sql, reqdata.SellerName, reqdata.State, reqdata.Remark)
-	cacheserver.FlushSeller()
 	WriteAdminLog("添加运营商", ctx, reqdata)
 	ctx.RespOK()
 }
@@ -232,7 +230,6 @@ func seller_modify(ctx *abugo.AbuHttpContent) {
 	}
 	sql := fmt.Sprintf("update %s set SellerName = ?,State = ?,Remark = ? where SellerId = ?", db_seller_tablename)
 	db.QueryNoResult(sql, reqdata.SellerName, reqdata.State, reqdata.Remark, reqdata.SellerId)
-	cacheserver.FlushSeller()
 	WriteAdminLog("修改运营商", ctx, reqdata)
 	ctx.RespOK()
 }
@@ -259,7 +256,6 @@ func seller_delete(ctx *abugo.AbuHttpContent) {
 	db.QueryNoResult(sql, reqdata.SellerId)
 	sql = "delete from admin_role where SellerId = ?"
 	db.QueryNoResult(sql, reqdata.SellerId)
-	cacheserver.FlushSeller()
 	WriteAdminLog("删除运营商", ctx, reqdata)
 	ctx.RespOK()
 }
@@ -289,7 +285,6 @@ func seller_change_key(ctx *abugo.AbuHttpContent) {
 	apirsariskkey := abugo.NewRsaKey()
 	sql = fmt.Sprintf("update %sseller set ApiRiskPublicKey = ?,ApiRiskPrivateKey = ? where SellerId = ?", dbprefix)
 	db.QueryNoResult(sql, apirsariskkey.Public, apirsariskkey.Private, reqdata.SellerId)
-	cacheserver.FlushSeller()
 	WriteAdminLog("更换运营商秘钥", ctx, reqdata)
 	ctx.RespOK()
 }
@@ -350,7 +345,6 @@ func seller_set_key(ctx *abugo.AbuHttpContent) {
 	}
 	sql := fmt.Sprintf("update %sseller set ApiThirdPublicKey = ?,ApiThirdRiskPublicKey = ? where sellerid = ?", dbprefix)
 	db.QueryNoResult(sql, reqdata.ApiThirdPublicKey, reqdata.ApiThirdRiskPublicKey, reqdata.SellerId)
-	cacheserver.FlushSeller()
 	ctx.RespOK()
 }
 
