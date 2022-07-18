@@ -20,6 +20,7 @@ export default new Router({
 				//游戏管理
 				{ path: '/game_list', component: () => import('../../page/game/game.vue'), meta: { title: '游戏列表' } },
 				//系统管理
+				{ path: '/system_config', component: () => import('../../page/system/config.vue'), meta: { title: '系统设置' } },
 				{ path: '/system_seller', component: () => import('../../page/system/seller.vue'), meta: { title: '运营商管理' } },
 				{ path: '/system_login_log', component: () => import('../../page/system/loginlog.vue'), meta: { title: '登录日志' } },
 				{ path: '/system_account', component: () => import('../../page/system/account.vue'), meta: { title: '账号管理' } },
